@@ -1,0 +1,60 @@
+{
+    "name": "scrapeunblocker/client",
+    "description": "Official PHP client for the ScrapeUnblocker web scraping API - JS-rendered pages that bypass Cloudflare, DataDome, PerimeterX and Akamai, plus Google SERP and Skyscanner flights/hotels/car-hire scraping as JSON.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "web scraping",
+        "scraping api",
+        "anti-bot",
+        "proxy",
+        "cloudflare",
+        "datadome",
+        "captcha",
+        "crawler",
+        "scraper",
+        "skyscanner",
+        "skyscanner scrape",
+        "skyscanner scrape api",
+        "skyscanner scraper",
+        "skyscanner api",
+        "flights api",
+        "hotels api",
+        "car hire",
+        "travel data",
+        "serp api"
+    ],
+    "homepage": "https://scrapeunblocker.com",
+    "authors": [
+        {
+            "name": "ScrapeUnblocker",
+            "email": "support@scrapeunblocker.com",
+            "homepage": "https://scrapeunblocker.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/ScrapeUnblocker/scrapeunblocker-php/issues",
+        "docs": "https://developers.scrapeunblocker.com"
+    },
+    "require": {
+        "php": ">=8.1",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "ScrapeUnblocker\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ScrapeUnblocker\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
