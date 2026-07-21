@@ -76,6 +76,15 @@ $fresh = $su->getParsed($url, ['refresh_rules' => true, 'rules_hint' => 'price i
 $serp = $su->serp('web scraping api', ['pages_to_check' => 2, 'proxy_country' => 'US']);
 ```
 
+## Google Local (Maps)
+
+```php
+$local = $su->googleLocal('coffee shops in chicago', ['proxy_country' => 'US', 'gl' => 'us']);
+foreach ($local['results'] as $biz) {
+    echo "{$biz['name']} {$biz['rating']} {$biz['address']}\n";
+}
+```
+
 ## Cookies and the serving proxy
 
 ```php

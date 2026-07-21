@@ -90,6 +90,18 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('pages_to_check=2', $this->urls[0]);
     }
 
+    public function testGoogleLocalTargetsMapsEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
+        $out = $client->googleLocal('coffee shops in chicago', ['proxy_country' => 'US', 'gl' => 'us']);
+
+        $this->assertSame(['results' => []], $out);
+        $this->assertStringContainsString('/maps/google-local', $this->urls[0]);
+        $this->assertStringContainsString('keyword=coffee', $this->urls[0]);
+        $this->assertStringContainsString('proxy_country=US', $this->urls[0]);
+        $this->assertStringContainsString('gl=us', $this->urls[0]);
+    }
+
     public function testGetImageReturnsBytes(): void
     {
         $client = $this->client([['status' => 200, 'body' => "\x89PNG"]]);

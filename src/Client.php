@@ -26,7 +26,7 @@ use ScrapeUnblocker\Exception\UpstreamOutageException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.1.0';
+    private const VERSION = '0.1.1';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -112,6 +112,23 @@ final class Client
             'pages_to_check' => $options['pages_to_check'] ?? 1,
             'wait_after_load' => ($options['wait_after_load'] ?? 0) ?: null,
             'captcha_pause' => ($options['captcha_pause'] ?? 0) ?: null,
+        ]);
+    }
+
+    /**
+     * Search Google Local (Maps) and return the businesses as an array.
+     *
+     * Returns up to ~20 businesses, each with name, rating, reviews, price,
+     * category, address, hours and a top review snippet. Local results are
+     * location-sensitive - set 'proxy_country' (and optionally 'gl').
+     */
+    public function googleLocal(string $keyword, array $options = []): array
+    {
+        return $this->postJson('/maps/google-local', [
+            'keyword' => $keyword,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'hl' => $options['hl'] ?? null,
+            'gl' => $options['gl'] ?? null,
         ]);
     }
 
