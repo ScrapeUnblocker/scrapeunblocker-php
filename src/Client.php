@@ -132,6 +132,25 @@ final class Client
         ]);
     }
 
+    /**
+     * Search Oopbuy goods and return the products as an array.
+     *
+     * Searches the "1688" channel by default ("taobao" and "official" are
+     * also supported) and returns products with USD and CNY prices, images
+     * and monthly sales. Brand keywords are rejected with HTTP 422.
+     */
+    public function oopbuySearch(string $keyword, array $options = []): array
+    {
+        return $this->postJson('/goods/oopbuy-search', [
+            'keyword' => $keyword,
+            'channel' => $options['channel'] ?? null,
+            'page' => $options['page'] ?? null,
+            'page_size' => $options['page_size'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
     /** Fetch an image URL through the bypass chain and return its raw bytes. */
     public function getImage(string $url, array $options = []): string
     {

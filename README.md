@@ -85,6 +85,17 @@ foreach ($local['results'] as $biz) {
 }
 ```
 
+## Oopbuy goods search
+
+```php
+$goods = $su->oopbuySearch('running shoes', ['channel' => '1688', 'sort' => 'best_selling', 'page_size' => 20]);
+foreach ($goods['results'] as $item) {
+    echo "{$item['title']} {$item['price']} {$item['url']}\n";
+}
+```
+
+Channels: `1688` (default), `taobao`, `official`. Sort: `default`, `price_asc`, `price_desc`, `best_selling`. `page_size` up to 60. Brand keywords are rejected with HTTP 422.
+
 ## Cookies and the serving proxy
 
 ```php

@@ -102,6 +102,20 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('gl=us', $this->urls[0]);
     }
 
+    public function testOopbuySearchTargetsGoodsEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
+        $out = $client->oopbuySearch('running shoes', ['channel' => 'taobao', 'page' => 2, 'page_size' => 40, 'sort' => 'price_asc']);
+
+        $this->assertSame(['results' => []], $out);
+        $this->assertStringContainsString('/goods/oopbuy-search', $this->urls[0]);
+        $this->assertStringContainsString('keyword=running', $this->urls[0]);
+        $this->assertStringContainsString('channel=taobao', $this->urls[0]);
+        $this->assertStringContainsString('page=2', $this->urls[0]);
+        $this->assertStringContainsString('page_size=40', $this->urls[0]);
+        $this->assertStringContainsString('sort=price_asc', $this->urls[0]);
+    }
+
     public function testGetImageReturnsBytes(): void
     {
         $client = $this->client([['status' => 200, 'body' => "\x89PNG"]]);
