@@ -26,7 +26,7 @@ use ScrapeUnblocker\Exception\UpstreamOutageException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.1.1';
+    private const VERSION = '0.1.2';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
