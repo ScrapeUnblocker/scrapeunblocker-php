@@ -94,7 +94,7 @@ foreach ($goods['results'] as $item) {
 }
 ```
 
-Channels: `1688` (default), `taobao`, `official`. Sort: `default`, `price_asc`, `price_desc`, `best_selling`. `page_size` up to 60. Brand keywords are rejected with HTTP 422.
+Channels: `1688` (default), `taobao`, `official`. Sort: `default`, `price_asc`, `price_desc`, `best_selling`. `page_size` up to 60. Oopbuy trademark-blocks brand keywords at its own backend: those come back as a successful `200` with `keywordRejected: true` and an empty `results` array, not an error.
 
 ## Cookies and the serving proxy
 
@@ -130,10 +130,11 @@ $cars = $su->skyscanner->carhire(['pickup' => 'Madrid', 'pickup_datetime' => '20
 
 ## Error handling
 
-Non-2xx responses throw typed exceptions, all subclasses of `ScrapeUnblockerException`. Transient failures (429, 502, 503, 504 and network errors) are retried automatically with exponential backoff.
+Non-2xx responses throw typed exceptions, all subclasses of `ScrapeUnblockerException`.
 
 ```php
 use ScrapeUnblocker\Exception\BlockedException;
+use ScrapeUnblocker\Exception\PaymentRequiredException;
 use ScrapeUnblocker\Exception\RateLimitException;
 use ScrapeUnblocker\Exception\UpstreamOutageException;
 
@@ -141,6 +142,8 @@ try {
     $html = $su->getPageSource('https://example.com');
 } catch (BlockedException $e) {
     // 403: the target blocked every bypass path (not billed)
+} catch (PaymentRequiredException $e) {
+    // 402: quota, credit limit, or a failed payment - fix billing
 } catch (RateLimitException $e) {
     // 429: slow down
 } catch (UpstreamOutageException $e) {
@@ -150,14 +153,49 @@ try {
 
 | Exception | Status | Meaning |
 |---|---|---|
-| `InvalidRequestException` | 400 | Bad URL or unsupported scheme |
-| `AuthenticationException` | 401 | Missing or invalid API key |
+| `InvalidRequestException` | 400 | Bad URL, unsupported scheme, or the API key header was not sent |
+| `AuthenticationException` | 401 | Key not recognised - typo, stray whitespace, or a rotated key |
+| `NoSubscriptionException` | 401 | Key is fine, but the account has no active plan |
+| `PaymentRequiredException` | 402 | Billing block - base class for the three below |
+| `QuotaExceededException` | 402 | The plan's requests for this period are used up |
+| `CreditLimitExceededException` | 402 | Unpaid balance is past the account's credit limit |
+| `PaymentFailedException` | 402 | A card payment was declined three times |
 | `BlockedException` | 403 | Blocked by bot protection on every path |
+| `NotFoundException` | 404 | Page loaded but held no image (`getImage` only) |
+| `BrowserTimeoutException` | 408 | Our browser run timed out before the page was ready |
+| `UnsupportedContentException` | 415 | The URL serves something other than HTML |
+| `ValidationException` | 422 | Missing or wrong-typed parameter; `$body` holds the `detail` array |
 | `RateLimitException` | 429 | Too many requests |
 | `UpstreamOutageException` | 503 | The target origin is down |
-| `ServerException` | 5xx | Unexpected server error |
-| `TimeoutException` | - | Request exceeded the timeout |
+| `ServerException` | 5xx | Unexpected server error, including a 504 upstream timeout |
+| `TimeoutException` | - | This client gave up locally before the API answered |
 | `ConnectionException` | - | Could not reach the API |
+
+Transient failures (429, 502, 503, 504 and network errors) are retried automatically with exponential backoff. A 401 or 402 is never retried - it clears when the key or the billing state changes, not on another attempt. Neither is billed or counted against your quota, because the request is refused before anything is scraped.
+
+### Billing errors (402)
+
+The three billing blocks share a status code and differ only in their message, so the client throws a dedicated exception for each:
+
+```php
+use ScrapeUnblocker\Exception\CreditLimitExceededException;
+use ScrapeUnblocker\Exception\PaymentFailedException;
+use ScrapeUnblocker\Exception\QuotaExceededException;
+
+try {
+    $html = $su->getPageSource('https://example.com');
+} catch (QuotaExceededException $e) {
+    // plan quota (plus any overage allowance) is used up for this period
+} catch (CreditLimitExceededException $e) {
+    // unpaid balance passed the account credit limit
+} catch (PaymentFailedException $e) {
+    // card declined three times - update the payment method
+}
+```
+
+When more than one applies, the most serious wins: failed payment outranks credit limit, which outranks quota. All three lift by themselves once the billing state changes - access returns within about a minute, and the API key stays the same. One catch worth knowing: subscribing to a new plan does **not** clear `PaymentFailedException`, because the old unpaid invoice stays open until it is paid.
+
+Full details for every status code: [developers.scrapeunblocker.com/errors](https://developers.scrapeunblocker.com/errors).
 
 ## Configuration
 

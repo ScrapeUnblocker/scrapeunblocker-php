@@ -6,11 +6,22 @@ namespace ScrapeUnblocker\Tests;
 
 use PHPUnit\Framework\TestCase;
 use ScrapeUnblocker\Client;
+use ScrapeUnblocker\Exception\ApiException;
+use ScrapeUnblocker\Exception\AuthenticationException;
 use ScrapeUnblocker\Exception\BlockedException;
+use ScrapeUnblocker\Exception\BrowserTimeoutException;
+use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
+use ScrapeUnblocker\Exception\NoSubscriptionException;
+use ScrapeUnblocker\Exception\NotFoundException;
+use ScrapeUnblocker\Exception\PaymentFailedException;
+use ScrapeUnblocker\Exception\PaymentRequiredException;
+use ScrapeUnblocker\Exception\QuotaExceededException;
 use ScrapeUnblocker\Exception\RateLimitException;
 use ScrapeUnblocker\Exception\ScrapeUnblockerException;
+use ScrapeUnblocker\Exception\UnsupportedContentException;
 use ScrapeUnblocker\Exception\UpstreamOutageException;
+use ScrapeUnblocker\Exception\ValidationException;
 use ScrapeUnblocker\ParsedPage;
 
 final class ClientTest extends TestCase
@@ -146,10 +157,90 @@ final class ClientTest extends TestCase
     {
         return [
             [400, InvalidRequestException::class],
+            [401, AuthenticationException::class],
+            [402, PaymentRequiredException::class],
             [403, BlockedException::class],
+            [404, NotFoundException::class],
+            [408, BrowserTimeoutException::class],
+            [415, UnsupportedContentException::class],
+            [422, ValidationException::class],
             [429, RateLimitException::class],
             [503, UpstreamOutageException::class],
+            [418, ApiException::class],
         ];
+    }
+
+    /**
+     * @dataProvider billingBodyProvider
+     */
+    public function testBillingErrorSubclassFromBody(string $body, string $exceptionClass): void
+    {
+        $client = $this->client([['status' => 402, 'body' => $body]], ['max_retries' => 0]);
+
+        try {
+            $client->getPageSource('https://example.com');
+            $this->fail('Expected a billing exception');
+        } catch (PaymentRequiredException $e) {
+            $this->assertInstanceOf($exceptionClass, $e);
+            $this->assertSame(402, $e->statusCode);
+            $this->assertSame($body, $e->body);
+        }
+    }
+
+    public static function billingBodyProvider(): array
+    {
+        return [
+            ["Quota exceeded\n", QuotaExceededException::class],
+            ["Credit limit exceeded\n", CreditLimitExceededException::class],
+            ["Payment failed - update payment method\n", PaymentFailedException::class],
+            ['something new we do not know yet', PaymentRequiredException::class],
+        ];
+    }
+
+    /**
+     * @dataProvider authBodyProvider
+     */
+    public function testAuthErrorSubclassFromBody(string $body, string $exceptionClass): void
+    {
+        $client = $this->client([['status' => 401, 'body' => $body]], ['max_retries' => 0]);
+
+        try {
+            $client->getPageSource('https://example.com');
+            $this->fail('Expected an authentication exception');
+        } catch (AuthenticationException $e) {
+            $this->assertInstanceOf($exceptionClass, $e);
+            $this->assertSame(401, $e->statusCode);
+        }
+    }
+
+    public static function authBodyProvider(): array
+    {
+        return [
+            ["No valid subscription\n", NoSubscriptionException::class],
+            ["Unauthorized\n", AuthenticationException::class],
+        ];
+    }
+
+    /**
+     * These clear when the key or billing state changes, never on a retry.
+     *
+     * @dataProvider nonRetryableProvider
+     */
+    public function testAuthAndBillingErrorsAreNotRetried(int $status): void
+    {
+        $client = $this->client([['status' => $status, 'body' => 'Quota exceeded']], ['max_retries' => 3]);
+
+        try {
+            $client->getPageSource('https://example.com');
+            $this->fail('Expected an API exception');
+        } catch (ApiException) {
+            $this->assertCount(1, $this->urls);
+        }
+    }
+
+    public static function nonRetryableProvider(): array
+    {
+        return [[401], [402]];
     }
 
     public function testRetriesThenSucceeds(): void
