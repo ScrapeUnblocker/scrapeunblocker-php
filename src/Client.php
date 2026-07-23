@@ -7,13 +7,22 @@ namespace ScrapeUnblocker;
 use ScrapeUnblocker\Exception\ApiException;
 use ScrapeUnblocker\Exception\AuthenticationException;
 use ScrapeUnblocker\Exception\BlockedException;
+use ScrapeUnblocker\Exception\BrowserTimeoutException;
 use ScrapeUnblocker\Exception\ConnectionException;
+use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
+use ScrapeUnblocker\Exception\NoSubscriptionException;
+use ScrapeUnblocker\Exception\NotFoundException;
+use ScrapeUnblocker\Exception\PaymentFailedException;
+use ScrapeUnblocker\Exception\PaymentRequiredException;
+use ScrapeUnblocker\Exception\QuotaExceededException;
 use ScrapeUnblocker\Exception\RateLimitException;
 use ScrapeUnblocker\Exception\ScrapeUnblockerException;
 use ScrapeUnblocker\Exception\ServerException;
 use ScrapeUnblocker\Exception\TimeoutException;
+use ScrapeUnblocker\Exception\UnsupportedContentException;
 use ScrapeUnblocker\Exception\UpstreamOutageException;
+use ScrapeUnblocker\Exception\ValidationException;
 
 /**
  * Client for the ScrapeUnblocker API.
@@ -26,7 +35,7 @@ use ScrapeUnblocker\Exception\UpstreamOutageException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.1.2';
+    private const VERSION = '0.1.6';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -137,7 +146,9 @@ final class Client
      *
      * Searches the "1688" channel by default ("taobao" and "official" are
      * also supported) and returns products with USD and CNY prices, images
-     * and monthly sales. Brand keywords are rejected with HTTP 422.
+     * and monthly sales. Oopbuy trademark-blocks brand keywords at its own
+     * backend: those return a successful 200 with keywordRejected = true and
+     * an empty results array, not an error.
      */
     public function oopbuySearch(string $keyword, array $options = []): array
     {
@@ -238,23 +249,64 @@ final class Client
             $snippet = substr($snippet, 0, 200) . '...';
         }
         $base = match ($status) {
-            400 => 'Invalid request (bad URL or unsupported scheme)',
-            401 => 'Authentication failed - check your API key',
+            400 => 'Invalid request (bad URL, unsupported scheme, or missing API key header)',
+            401 => 'Authentication failed - key not recognised, or account has no active plan',
+            402 => 'Billing block - quota exceeded, credit limit exceeded, or a failed payment',
             403 => 'Target blocked by bot protection on every bypass path',
+            404 => 'Requested element not found on the page',
+            408 => 'Browser run timed out before the page was ready',
+            415 => 'URL does not serve HTML',
+            422 => 'Validation error - see the detail array in the response body',
             429 => 'Rate limited - too many requests',
             503 => 'Upstream origin returned a server-side outage page',
+            504 => 'Fetch timed out upstream',
             default => "API returned HTTP {$status}",
         };
         $message = $snippet !== '' ? "{$base}: {$snippet}" : $base;
 
         return match (true) {
             $status === 400 => new InvalidRequestException($message, $status, $body),
-            $status === 401 => new AuthenticationException($message, $status, $body),
+            $status === 401 => $this->authError($message, $status, $body),
+            $status === 402 => $this->billingError($message, $status, $body),
             $status === 403 => new BlockedException($message, $status, $body),
+            $status === 404 => new NotFoundException($message, $status, $body),
+            $status === 408 => new BrowserTimeoutException($message, $status, $body),
+            $status === 415 => new UnsupportedContentException($message, $status, $body),
+            $status === 422 => new ValidationException($message, $status, $body),
             $status === 429 => new RateLimitException($message, $status, $body),
             $status === 503 => new UpstreamOutageException($message, $status, $body),
             $status >= 500 => new ServerException($message, $status, $body),
             default => new ApiException($message, $status, $body),
+        };
+    }
+
+    /**
+     * A 401 is either an unknown key or a recognised key on an account without a plan,
+     * and only the body tells them apart. Anything unrecognised stays on the general
+     * AuthenticationException rather than guessing.
+     */
+    private function authError(string $message, int $status, string $body): AuthenticationException
+    {
+        if (str_contains(strtolower($body), 'no valid subscription')) {
+            return new NoSubscriptionException($message, $status, $body);
+        }
+
+        return new AuthenticationException($message, $status, $body);
+    }
+
+    /**
+     * The three billing blocks share a status code and differ only in their plain-text
+     * body. An unrecognised body falls back to PaymentRequiredException.
+     */
+    private function billingError(string $message, int $status, string $body): PaymentRequiredException
+    {
+        $text = strtolower($body);
+
+        return match (true) {
+            str_contains($text, 'quota exceeded') => new QuotaExceededException($message, $status, $body),
+            str_contains($text, 'credit limit exceeded') => new CreditLimitExceededException($message, $status, $body),
+            str_contains($text, 'payment failed') => new PaymentFailedException($message, $status, $body),
+            default => new PaymentRequiredException($message, $status, $body),
         };
     }
 
