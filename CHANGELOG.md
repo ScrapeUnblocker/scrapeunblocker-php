@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7 (2026-07-27)
+
+- Registry and README links to scrapeunblocker.com now carry UTM parameters so traffic from package registries is attributable. No functional changes.
+
 ## 0.1.6 - 2026-07-23
 
 Version jumps from 0.1.2 to 0.1.6 so all four official SDKs (Python, Node.js, Ruby, PHP) share one version number from here on. Nothing was skipped - 0.1.3 to 0.1.5 were never released for PHP.
