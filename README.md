@@ -1,6 +1,6 @@
 # ScrapeUnblocker PHP client
 
-Official PHP client for the [ScrapeUnblocker](https://scrapeunblocker.com) web scraping API.
+Official PHP client for the [ScrapeUnblocker](https://scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk) web scraping API.
 
 Every request is fully JavaScript-rendered in a real browser and routed through premium proxies, so it bypasses Cloudflare, DataDome, PerimeterX, Akamai, Kasada and similar anti-bot systems - from one simple call. You are only billed for successful requests.
 
@@ -35,7 +35,7 @@ echo $product->pageType;      // "product"
 print_r($product->data);
 ```
 
-Get your API key at [app.scrapeunblocker.com](https://app.scrapeunblocker.com). The free trial does not require a credit card.
+Get your API key at [app.scrapeunblocker.com](https://app.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk). The free trial does not require a credit card.
 
 ## Authentication
 
@@ -209,9 +209,9 @@ new Client('YOUR_API_KEY', [
 
 ## Links
 
-- Documentation: https://developers.scrapeunblocker.com
-- Website: https://scrapeunblocker.com
-- Dashboard: https://app.scrapeunblocker.com
+- Documentation: [developers.scrapeunblocker.com](https://developers.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
+- Website: [scrapeunblocker.com](https://scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
+- Dashboard: [app.scrapeunblocker.com](https://app.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
 
 ## License
 

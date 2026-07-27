@@ -24,17 +24,17 @@
         "travel data",
         "serp api"
     ],
-    "homepage": "https://scrapeunblocker.com",
+    "homepage": "https://scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk",
     "authors": [
         {
             "name": "ScrapeUnblocker",
             "email": "support@scrapeunblocker.com",
-            "homepage": "https://scrapeunblocker.com"
+            "homepage": "https://scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk"
         }
     ],
     "support": {
         "issues": "https://github.com/ScrapeUnblocker/scrapeunblocker-php/issues",
-        "docs": "https://developers.scrapeunblocker.com"
+        "docs": "https://developers.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk"
     },
     "require": {
         "php": ">=8.1",
