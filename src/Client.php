@@ -35,7 +35,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.1.6';
+    private const VERSION = '0.1.8';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -158,6 +158,41 @@ final class Client
             'page' => $options['page'] ?? null,
             'page_size' => $options['page_size'] ?? null,
             'sort' => $options['sort'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Search eBay and return the listings as an array.
+     *
+     * Each listing carries title, numeric price and currency, condition (with
+     * a normalised conditionCode), seller username and feedback, shipping
+     * cost, sold/watcher/bid counts, image and a clean item URL.
+     *
+     * Options: marketplace (default 'ebay.com'), page, page_size (60, 120 or
+     * 240), condition ('new', 'open_box', 'refurbished', 'used', 'for_parts'),
+     * sort ('best_match', 'newly_listed', 'ending_soon', 'price_asc',
+     * 'price_desc'), listing_type ('all', 'buy_it_now', 'auction'), min_price,
+     * max_price, free_shipping, seller, category, proxy_country.
+     *
+     * When eBay finds no exact match it still serves a page of loosely related
+     * suggestions, and the response then carries exactMatches = false.
+     */
+    public function ebaySearch(string $keyword, array $options = []): array
+    {
+        return $this->postJson('/marketplace/ebay-search', [
+            'keyword' => $keyword,
+            'marketplace' => $options['marketplace'] ?? null,
+            'page' => $options['page'] ?? null,
+            'page_size' => $options['page_size'] ?? null,
+            'condition' => $options['condition'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'listing_type' => $options['listing_type'] ?? null,
+            'min_price' => $options['min_price'] ?? null,
+            'max_price' => $options['max_price'] ?? null,
+            'free_shipping' => ($options['free_shipping'] ?? false) ? true : null,
+            'seller' => $options['seller'] ?? null,
+            'category' => $options['category'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,
         ]);
     }

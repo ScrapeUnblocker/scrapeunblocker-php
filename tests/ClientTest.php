@@ -127,6 +127,30 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('sort=price_asc', $this->urls[0]);
     }
 
+    public function testEbaySearchTargetsMarketplaceEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => [], 'exactMatches' => true])]]);
+        $out = $client->ebaySearch('iphone 13', [
+            'marketplace' => 'ebay.de',
+            'condition' => 'used',
+            'sort' => 'newly_listed',
+            'min_price' => 100,
+            'max_price' => 300,
+        ]);
+
+        $this->assertSame(['results' => [], 'exactMatches' => true], $out);
+        $this->assertStringContainsString('/marketplace/ebay-search', $this->urls[0]);
+        $this->assertStringContainsString('keyword=iphone', $this->urls[0]);
+        $this->assertStringContainsString('marketplace=ebay.de', $this->urls[0]);
+        $this->assertStringContainsString('condition=used', $this->urls[0]);
+        $this->assertStringContainsString('sort=newly_listed', $this->urls[0]);
+        $this->assertStringContainsString('min_price=100', $this->urls[0]);
+        $this->assertStringContainsString('max_price=300', $this->urls[0]);
+        // Unset optional filters must not be sent at all.
+        $this->assertStringNotContainsString('seller=', $this->urls[0]);
+        $this->assertStringNotContainsString('free_shipping=', $this->urls[0]);
+    }
+
     public function testGetImageReturnsBytes(): void
     {
         $client = $this->client([['status' => 200, 'body' => "\x89PNG"]]);

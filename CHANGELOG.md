@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.8 (2026-07-31)
+
+- Added `ebaySearch()` for the new eBay Search plugin: listings from any of the 19 regional eBay marketplaces as structured JSON - title, numeric price and currency, condition with a normalised `conditionCode`, seller username and feedback, shipping cost, sold/watcher/bid counts, image and a clean item URL.
+- Filters map straight onto the plugin: `marketplace`, `condition`, `sort`, `listing_type`, `min_price`/`max_price`, `free_shipping`, `seller`, `category`, plus `page`/`page_size` (60, 120 or 240).
+- The response carries `exactMatches`; it is `false` when eBay found no match for the keyword and answered with its own loosely-related suggestions.
+- Fixed the `User-Agent` version, which still reported 0.1.6 after the 0.1.7 release.
+
+No breaking changes.
+
 ## 0.1.7 (2026-07-27)
 
 - Registry and README links to scrapeunblocker.com now carry UTM parameters so traffic from package registries is attributable. No functional changes.
