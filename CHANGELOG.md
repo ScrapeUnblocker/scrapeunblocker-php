@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9 (2026-08-28)
+
+- Added `amazonProduct()` and `amazonSearch()` for the new Amazon plugin. `amazonProduct(['asin' => ...] or ['url' => ...])` returns one product - title, brand, numeric price and currency, list price and savings, availability, rating, review count, seller, feature bullets, categories and images. `amazonSearch($keyword, $options)` returns a keyword search's cards - asin, title, price, list price, rating, review count, a clean product URL, image and the sponsored/prime flags - on any of 20 regional marketplaces.
+- Prices come back in the right currency automatically: `proxy_country` defaults to the marketplace's home country (amazon.com -> US, amazon.de -> DE), pinning the exit over our ISP pool.
+
 ## 0.1.8 (2026-07-31)
 
 - Added `ebaySearch()` for the new eBay Search plugin: listings from any of the 19 regional eBay marketplaces as structured JSON - title, numeric price and currency, condition with a normalised `conditionCode`, seller username and feedback, shipping cost, sold/watcher/bid counts, image and a clean item URL.

@@ -96,6 +96,24 @@ foreach ($goods['results'] as $item) {
 
 Channels: `1688` (default), `taobao`, `official`. Sort: `default`, `price_asc`, `price_desc`, `best_selling`. `page_size` up to 60. Oopbuy trademark-blocks brand keywords at its own backend: those come back as a successful `200` with `keywordRejected: true` and an empty `results` array, not an error.
 
+## Amazon
+
+Product and search data as an array, priced in the marketplace's own currency:
+
+```php
+// One product by ASIN (or ['url' => 'https://www.amazon.de/dp/B0BSHF7WHW'])
+$product = $su->amazonProduct(['asin' => 'B0BSHF7WHW', 'marketplace' => 'amazon.com']);
+echo $product['title'], ' ', $product['price'], ' ', $product['currency'], PHP_EOL;
+
+// Keyword search
+$results = $su->amazonSearch('wireless headphones', ['sort' => 'price_asc']);
+foreach ($results['results'] as $item) {
+    echo $item['title'], ' ', $item['price'], ' ', $item['currency'], ' ', $item['asin'], PHP_EOL;
+}
+```
+
+`proxy_country` defaults to the marketplace's home country (`amazon.com` -> US, `amazon.de` -> DE), so prices come back in the right currency with no configuration. `sort` is one of `featured` (default), `price_asc`, `price_desc`, `avg_review`, `newest`.
+
 ## eBay search
 
 ```php

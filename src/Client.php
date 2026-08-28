@@ -35,7 +35,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.1.8';
+    private const VERSION = '0.1.9';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -193,6 +193,53 @@ final class Client
             'free_shipping' => ($options['free_shipping'] ?? false) ? true : null,
             'seller' => $options['seller'] ?? null,
             'category' => $options['category'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Amazon product by ASIN or URL and return it as an array.
+     *
+     * Returns title, brand, numeric price and currency, list price and
+     * savings, availability, rating, review count, seller, feature bullets,
+     * categories and images. Prices come back in the marketplace's own
+     * currency: proxy_country defaults to the marketplace's home country
+     * (amazon.com -> US), pinning the exit over the ISP pool.
+     *
+     * Options: asin (10-char id, pair with marketplace) OR url (full product
+     * URL), marketplace (default 'amazon.com'), proxy_country.
+     */
+    public function amazonProduct(array $options = []): array
+    {
+        return $this->postJson('/marketplace/amazon-product', [
+            'asin' => $options['asin'] ?? null,
+            'url' => $options['url'] ?? null,
+            'marketplace' => $options['marketplace'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Search Amazon and return the result cards as an array.
+     *
+     * Each card carries asin, title, numeric price and currency, list price,
+     * rating, review count, a clean product URL, image and the sponsored /
+     * prime flags. Fetch a card's full detail with amazonProduct(). Prices are
+     * in the marketplace's own currency.
+     *
+     * Options: marketplace (default 'amazon.com'), page, sort ('featured',
+     * 'price_asc', 'price_desc', 'avg_review', 'newest'), min_price, max_price,
+     * proxy_country.
+     */
+    public function amazonSearch(string $keyword, array $options = []): array
+    {
+        return $this->postJson('/marketplace/amazon-search', [
+            'keyword' => $keyword,
+            'marketplace' => $options['marketplace'] ?? null,
+            'page' => $options['page'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'min_price' => $options['min_price'] ?? null,
+            'max_price' => $options['max_price'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,
         ]);
     }

@@ -151,6 +151,39 @@ final class ClientTest extends TestCase
         $this->assertStringNotContainsString('free_shipping=', $this->urls[0]);
     }
 
+    public function testAmazonProductTargetsMarketplaceEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['asin' => 'B0BSHF7WHW', 'price' => 49.99])]]);
+        $out = $client->amazonProduct(['asin' => 'B0BSHF7WHW', 'marketplace' => 'amazon.com']);
+
+        $this->assertSame(['asin' => 'B0BSHF7WHW', 'price' => 49.99], $out);
+        $this->assertStringContainsString('/marketplace/amazon-product', $this->urls[0]);
+        $this->assertStringContainsString('asin=B0BSHF7WHW', $this->urls[0]);
+        $this->assertStringContainsString('marketplace=amazon.com', $this->urls[0]);
+        // Unset optional params must not be sent at all.
+        $this->assertStringNotContainsString('url=', $this->urls[0]);
+        $this->assertStringNotContainsString('proxy_country=', $this->urls[0]);
+    }
+
+    public function testAmazonSearchTargetsMarketplaceEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => [], 'resultsCollected' => 0])]]);
+        $out = $client->amazonSearch('wireless headphones', [
+            'marketplace' => 'amazon.de',
+            'sort' => 'price_asc',
+            'min_price' => 50,
+            'max_price' => 200,
+        ]);
+
+        $this->assertSame(['results' => [], 'resultsCollected' => 0], $out);
+        $this->assertStringContainsString('/marketplace/amazon-search', $this->urls[0]);
+        $this->assertStringContainsString('keyword=wireless', $this->urls[0]);
+        $this->assertStringContainsString('marketplace=amazon.de', $this->urls[0]);
+        $this->assertStringContainsString('sort=price_asc', $this->urls[0]);
+        $this->assertStringContainsString('min_price=50', $this->urls[0]);
+        $this->assertStringContainsString('max_price=200', $this->urls[0]);
+    }
+
     public function testGetImageReturnsBytes(): void
     {
         $client = $this->client([['status' => 200, 'body' => "\x89PNG"]]);
