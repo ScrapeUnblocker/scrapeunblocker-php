@@ -35,7 +35,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.1.9';
+    private const VERSION = '0.1.10';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -71,7 +71,39 @@ final class Client
         $this->skyscanner = new Skyscanner($this);
     }
 
-    /** Fetch a URL and return the fully rendered HTML. */
+    /**
+     * Fetch a URL and return the fully rendered HTML.
+     *
+     * Options: proxy_country, time_sleep, method, value, method_timeout, and
+     * 'steps' - an ordered list of browser actions run in a real browser after
+     * the page loads (see below). Steps run once and are non-idempotent; if a
+     * step fails the API answers HTTP 422 and this client raises a
+     * ValidationException whose body holds { error: "step_failed", step_index,
+     * action, reason, selector, html }.
+     *
+     * Each step is an associative array with an 'action' key and its fields:
+     * - wait_for   { selector, selector_type?, timeout_ms? }
+     * - wait_for_text { value, timeout_ms? }
+     * - wait       { value } (milliseconds)
+     * - click      { selector, selector_type?, timeout_ms? }
+     * - type       { selector, selector_type?, value, clear?, timeout_ms? }
+     * - select     { selector, selector_type?, value, timeout_ms? }
+     * - press_key  { value } (Enter, Tab, Escape, ArrowDown, ...)
+     * - scroll     { value } ("bottom" or a pixel count)
+     * selector_type is one of css (default), xPath, className, tagName.
+     *
+     * ```php
+     * $html = $su->getPageSource('https://example.com/search', [
+     *     'steps' => [
+     *         ['action' => 'type', 'selector' => '#q', 'value' => 'laptops'],
+     *         ['action' => 'click', 'selector' => 'button[type=submit]'],
+     *         ['action' => 'wait_for', 'selector' => '.results'],
+     *     ],
+     * ]);
+     * ```
+     *
+     * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
+     */
     public function getPageSource(string $url, array $options = []): string
     {
         return $this->request('/getPageSource', [
@@ -81,7 +113,41 @@ final class Client
             'method' => $options['method'] ?? null,
             'value' => $options['value'] ?? null,
             'method_timeout' => $options['method_timeout'] ?? null,
+            'steps' => $this->encodeSteps($options['steps'] ?? null),
         ])['body'];
+    }
+
+    /**
+     * Fetch a URL and return its elements as an array instead of HTML.
+     *
+     * With list_elements the API answers with { url, count, elements: [...] }
+     * rather than a rendered document - the same request, a structured result.
+     * Accepts the same browser options as getPageSource(), including 'steps' to
+     * drive the page before the elements are collected.
+     *
+     * ```php
+     * $out = $su->listElements('https://example.com', [
+     *     'steps' => [['action' => 'scroll', 'value' => 'bottom']],
+     * ]);
+     * echo $out['count'];
+     * print_r($out['elements']);
+     * ```
+     *
+     * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
+     * @return array<mixed>
+     */
+    public function listElements(string $url, array $options = []): array
+    {
+        return $this->postJson('/getPageSource', [
+            'url' => $url,
+            'list_elements' => true,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'time_sleep' => $options['time_sleep'] ?? null,
+            'method' => $options['method'] ?? null,
+            'value' => $options['value'] ?? null,
+            'method_timeout' => $options['method_timeout'] ?? null,
+            'steps' => $this->encodeSteps($options['steps'] ?? null),
+        ]);
     }
 
     /** Fetch a URL and return structured JSON instead of HTML. */
@@ -293,6 +359,21 @@ final class Client
 
             throw $this->errorForStatus($status, $body);
         }
+    }
+
+    /**
+     * JSON-encode the browser steps into the single 'steps' query param the API
+     * expects. Null or an empty list drops the param entirely.
+     *
+     * @param list<array<string,mixed>>|null $steps
+     */
+    private function encodeSteps(?array $steps): ?string
+    {
+        if ($steps === null || $steps === []) {
+            return null;
+        }
+
+        return json_encode(array_values($steps));
     }
 
     /**

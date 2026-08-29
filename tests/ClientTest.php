@@ -78,6 +78,73 @@ final class ClientTest extends TestCase
         $this->assertStringNotContainsString('time_sleep', $this->urls[0]);
     }
 
+    public function testGetPageSourceEncodesStepsAsJson(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => '<html>done</html>']]);
+        $html = $client->getPageSource('https://example.com', [
+            'steps' => [
+                ['action' => 'type', 'selector' => '#q', 'value' => 'laptops'],
+                ['action' => 'click', 'selector' => 'button[type=submit]'],
+                ['action' => 'wait_for', 'selector' => '.results'],
+            ],
+        ]);
+
+        $this->assertSame('<html>done</html>', $html);
+        // steps must ride along as a single JSON-encoded query param.
+        $query = parse_url($this->urls[0], PHP_URL_QUERY);
+        parse_str((string) $query, $parsed);
+        $this->assertArrayHasKey('steps', $parsed);
+        $decoded = json_decode($parsed['steps'], true);
+        $this->assertSame('type', $decoded[0]['action']);
+        $this->assertSame('#q', $decoded[0]['selector']);
+        $this->assertSame('wait_for', $decoded[2]['action']);
+    }
+
+    public function testGetPageSourceOmitsEmptySteps(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => 'ok']]);
+        $client->getPageSource('https://example.com', ['steps' => []]);
+        $this->assertStringNotContainsString('steps', $this->urls[0]);
+    }
+
+    public function testListElementsReturnsParsedJson(): void
+    {
+        $payload = ['url' => 'https://example.com', 'count' => 2, 'elements' => ['a', 'b']];
+        $client = $this->client([['status' => 200, 'body' => json_encode($payload)]]);
+        $out = $client->listElements('https://example.com', [
+            'steps' => [['action' => 'scroll', 'value' => 'bottom']],
+        ]);
+
+        $this->assertSame($payload, $out);
+        $this->assertStringContainsString('/getPageSource', $this->urls[0]);
+        $this->assertStringContainsString('list_elements=true', $this->urls[0]);
+        $this->assertStringContainsString('steps=', $this->urls[0]);
+    }
+
+    public function testStepFailureSurfacesAsValidationException(): void
+    {
+        $body = json_encode([
+            'error' => 'step_failed',
+            'step_index' => 1,
+            'action' => 'click',
+            'reason' => 'selector not found',
+            'selector' => 'button#missing',
+            'html' => '<html></html>',
+        ]);
+        $client = $this->client([['status' => 422, 'body' => $body]], ['max_retries' => 0]);
+
+        try {
+            $client->getPageSource('https://example.com', [
+                'steps' => [['action' => 'click', 'selector' => 'button#missing']],
+            ]);
+            $this->fail('Expected a ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertSame(422, $e->statusCode);
+            $this->assertSame($body, $e->body);
+            $this->assertStringContainsString('step_failed', $e->body);
+        }
+    }
+
     public function testGetParsedReturnsParsedPage(): void
     {
         $payload = ['data' => ['page_type' => 'product', 'source' => 'schema.org', 'data' => ['price' => 10]]];

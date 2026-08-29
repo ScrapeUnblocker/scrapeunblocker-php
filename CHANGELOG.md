@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.10 (2026-08-29)
+
+- Added a `steps` option to `getPageSource()`: an ordered list of browser actions run in a real browser after the page loads - `wait_for`, `wait_for_text`, `wait`, `click`, `type`, `select`, `press_key` and `scroll` - so you can fill a form, submit it and wait for results in one call. Steps are JSON-encoded into the request. They run once and are non-idempotent; a failing step comes back as HTTP 422 and raises `ValidationException`, whose `$body` holds `{ error: "step_failed", step_index, action, reason, selector, html }`.
+- Added `listElements()`, which sends `list_elements=true` and returns the page's elements as an array (`{ url, count, elements: [...] }`) instead of HTML. It takes the same browser options as `getPageSource()`, including `steps`.
+
+No breaking changes.
+
 ## 0.1.9 (2026-08-28)
 
 - Added `amazonProduct()` and `amazonSearch()` for the new Amazon plugin. `amazonProduct(['asin' => ...] or ['url' => ...])` returns one product - title, brand, numeric price and currency, list price and savings, availability, rating, review count, seller, feature bullets, categories and images. `amazonSearch($keyword, $options)` returns a keyword search's cards - asin, title, price, list price, rating, review count, a clean product URL, image and the sponsored/prime flags - on any of 20 regional marketplaces.

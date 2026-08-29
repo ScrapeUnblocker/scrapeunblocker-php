@@ -58,6 +58,55 @@ $html = $su->getPageSource('https://www.nordstrom.com/browse/women/clothing/dres
 ]);
 ```
 
+## Browser steps
+
+Drive the page in the real browser after it loads - fill a search box, click a
+button, wait for results, scroll to trigger lazy loading - then return the HTML
+of the resulting page. Pass an ordered list of steps:
+
+```php
+$html = $su->getPageSource('https://example.com/search', [
+    'steps' => [
+        ['action' => 'type', 'selector' => '#q', 'value' => 'laptops'],
+        ['action' => 'press_key', 'value' => 'Enter'],
+        ['action' => 'wait_for', 'selector' => '.results'],
+        ['action' => 'scroll', 'value' => 'bottom'],
+    ],
+]);
+```
+
+Available actions and their fields:
+
+| Action | Fields |
+|---|---|
+| `wait_for` | `selector`, `selector_type?`, `timeout_ms?` |
+| `wait_for_text` | `value` (the text), `timeout_ms?` |
+| `wait` | `value` (milliseconds) |
+| `click` | `selector`, `selector_type?`, `timeout_ms?` |
+| `type` | `selector`, `selector_type?`, `value`, `clear?`, `timeout_ms?` |
+| `select` | `selector`, `selector_type?`, `value`, `timeout_ms?` |
+| `press_key` | `value` (`Enter`, `Tab`, `Escape`, `Backspace`, `Delete`, `Space`, `ArrowUp/Down/Left/Right`, `Home`, `End`, `PageUp`, `PageDown`) |
+| `scroll` | `value` (`"bottom"` or a pixel count) |
+
+`selector_type` is one of `css` (default), `xPath`, `className`, `tagName`.
+Steps run once and are **non-idempotent**. If a step fails, the API answers
+`422` and the client raises a `ValidationException` whose `$body` holds
+`{ error: "step_failed", step_index, action, reason, selector, html }`.
+
+## List elements
+
+Ask the API to return the page's elements as structured JSON -
+`{ url, count, elements: [...] }` - instead of a rendered document. Accepts the
+same browser options as `getPageSource()`, including `steps`:
+
+```php
+$out = $su->listElements('https://example.com', [
+    'steps' => [['action' => 'scroll', 'value' => 'bottom']],
+]);
+echo $out['count'], PHP_EOL;
+print_r($out['elements']);
+```
+
 ## Get parsed JSON
 
 ```php
