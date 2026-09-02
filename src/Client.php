@@ -35,7 +35,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.2.0';
+    private const VERSION = '0.2.1';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -204,6 +204,25 @@ final class Client
             'proxy_country' => $options['proxy_country'] ?? null,
             'hl' => $options['hl'] ?? null,
             'gl' => $options['gl'] ?? null,
+        ]);
+    }
+
+    /**
+     * Fetch an advertiser's Meta (Facebook) Ad Library ads and return them as
+     * an array.
+     *
+     * Options: country, active_status ('active', 'inactive', 'all'),
+     * media_type ('all', 'image', 'video', 'meme') and max_ads. Omitted
+     * options are dropped and the API applies its own defaults.
+     */
+    public function metaAdLibrary(string $advertiser, array $options = []): array
+    {
+        return $this->postJson('/ads/meta-ad-library', [
+            'advertiser' => $advertiser,
+            'country' => $options['country'] ?? null,
+            'active_status' => $options['active_status'] ?? null,
+            'media_type' => $options['media_type'] ?? null,
+            'max_ads' => $options['max_ads'] ?? null,
         ]);
     }
 

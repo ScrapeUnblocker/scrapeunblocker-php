@@ -180,6 +180,17 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('gl=us', $this->urls[0]);
     }
 
+    public function testMetaAdLibraryTargetsAdsEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
+        $out = $client->metaAdLibrary('Nike', ['country' => 'US']);
+
+        $this->assertSame(['results' => []], $out);
+        $this->assertStringContainsString('/ads/meta-ad-library', $this->urls[0]);
+        $this->assertStringContainsString('advertiser=Nike', $this->urls[0]);
+        $this->assertStringContainsString('country=US', $this->urls[0]);
+    }
+
     public function testOopbuySearchTargetsGoodsEndpoint(): void
     {
         $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);

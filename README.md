@@ -134,6 +134,17 @@ foreach ($local['results'] as $biz) {
 }
 ```
 
+## Meta Ad Library
+
+```php
+$ads = $su->metaAdLibrary('Nike', ['country' => 'US']);
+foreach ($ads['results'] as $ad) {
+    echo "{$ad['advertiser']} {$ad['adText']}\n";
+}
+```
+
+Options: `country`, `active_status` (`active`, `inactive`, `all`), `media_type` (`all`, `image`, `video`, `meme`) and `max_ads`. Omit any of them and the API applies its own defaults.
+
 ## Oopbuy goods search
 
 ```php
