@@ -34,7 +34,7 @@
     ],
     "support": {
         "issues": "https://github.com/ScrapeUnblocker/scrapeunblocker-php/issues",
-        "docs": "https://developers.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk"
+        "docs": "https://docs.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk"
     },
     "require": {
         "php": ">=8.1",

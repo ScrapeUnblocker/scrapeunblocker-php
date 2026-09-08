@@ -291,7 +291,7 @@ try {
 
 When more than one applies, the most serious wins: failed payment outranks credit limit, which outranks quota. All three lift by themselves once the billing state changes - access returns within about a minute, and the API key stays the same. One catch worth knowing: subscribing to a new plan does **not** clear `PaymentFailedException`, because the old unpaid invoice stays open until it is paid.
 
-Full details for every status code: [developers.scrapeunblocker.com/errors](https://developers.scrapeunblocker.com/errors).
+Full details for every status code: [docs.scrapeunblocker.com/errors](https://docs.scrapeunblocker.com/errors).
 
 ## Configuration
 
@@ -305,7 +305,7 @@ new Client('YOUR_API_KEY', [
 
 ## Links
 
-- Documentation: [developers.scrapeunblocker.com](https://developers.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
+- Documentation: [docs.scrapeunblocker.com](https://docs.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
 - Website: [scrapeunblocker.com](https://scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
 - Dashboard: [app.scrapeunblocker.com](https://app.scrapeunblocker.com?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk)
 
