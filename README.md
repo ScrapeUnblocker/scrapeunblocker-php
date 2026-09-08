@@ -198,7 +198,9 @@ if ($items['exactMatches']) {
 $profile = $su->tiktokProfile('nasa', ['max_videos' => 5]);     // exact stats + newest videos
 $video = $su->tiktokVideo('https://www.tiktok.com/@nasa/video/7665075736742530317', ['include_transcript' => true]);
 $tag = $su->tiktokHashtag('nasa', ['max_videos' => 10]);
-echo $profile['stats']['followers'], ' ', $video['stats']['plays'], ' ', $tag['stats']['views'];
+$results = $su->tiktokSearch('space telescope', ['max_results' => 25]);   // TikTok's own ranking
+$comments = $su->tiktokComments('https://www.tiktok.com/@nasa/video/7665075736742530317', ['max_comments' => 40]);
+echo $profile['stats']['followers'], ' ', $video['stats']['plays'], ' ', $tag['stats']['views'], ' ', $comments['totalComments'];
 ```
 
 Profiles and hashtags list up to 10 videos in a couple of seconds from TikTok's server-rendered widget; ask for more (up to 200) and the real grid is scrolled in a browser session.

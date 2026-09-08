@@ -415,4 +415,19 @@ final class ClientTest extends TestCase
         $this->assertStringNotContainsString('video_details=', $this->urls[2]);
     }
 
+    public function testTikTokSearchAndComments(): void
+    {
+        $client = $this->client([
+            ['status' => 200, 'body' => json_encode(['query' => 'space', 'results' => []])],
+            ['status' => 200, 'body' => json_encode(['videoId' => '1', 'comments' => []])],
+        ]);
+        $this->assertSame('space', $client->tiktokSearch('space', ['max_results' => 30, 'proxy_country' => 'US'])['query']);
+        $this->assertSame('1', $client->tiktokComments('7665075736742530317', ['max_comments' => 100])['videoId']);
+        $this->assertStringContainsString('/social/tiktok-search', $this->urls[0]);
+        $this->assertStringContainsString('query=space', $this->urls[0]);
+        $this->assertStringContainsString('max_results=30', $this->urls[0]);
+        $this->assertStringContainsString('/social/tiktok-comments', $this->urls[1]);
+        $this->assertStringContainsString('max_comments=100', $this->urls[1]);
+    }
+
 }

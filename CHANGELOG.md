@@ -2,7 +2,7 @@
 
 ## 0.3.0 (2026-09-08)
 
-- Added `tiktokProfile()`, `tiktokVideo()` and `tiktokHashtag()` for the new TikTok plugin: a creator's exact follower / like / video counts with their newest videos (up to 200), any video or photo post with exact plays, likes, comments, shares, saves and reposts, hashtags, music, play / download URLs, subtitle tracks and an optional transcript, and a hashtag's total views and videos with its videos. No login.
+- Added `tiktokProfile()`, `tiktokVideo()`, `tiktokHashtag()`, `tiktokSearch()` and `tiktokComments()` for the new TikTok plugin: a creator's exact follower / like / video counts with their newest videos (up to 200), any video or photo post with exact plays, likes, comments, shares, saves and reposts, hashtags, music, play / download URLs, subtitle tracks and an optional transcript, a hashtag's total views and videos with its videos, keyword search in TikTok's own ranking, and the comments of any post. No login.
 
 ## 0.2.1 (2026-09-02)
 

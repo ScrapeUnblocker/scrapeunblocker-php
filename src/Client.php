@@ -393,6 +393,36 @@ final class Client
         ]);
     }
 
+    /**
+     * Search TikTok videos by keyword. Runs in a browser session that clears
+     * TikTok's captcha, so `results` carry TikTok's own ranking (region via
+     * proxy_country), each in the full tiktokVideo() shape. Options:
+     * max_results (1-200, default 20), proxy_country. 20-45 s.
+     */
+    public function tiktokSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/social/tiktok-search', [
+            'query' => $query,
+            'max_results' => $options['max_results'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape the comments of a TikTok post (text, date, likes, reply count,
+     * author, creator flags, preloaded replies) plus totalComments and
+     * hasMore. Runs in a browser session that clears TikTok's captcha.
+     * Options: max_comments (1-500, default 50), proxy_country. 20-45 s.
+     */
+    public function tiktokComments(string $url, array $options = []): array
+    {
+        return $this->postJson('/social/tiktok-comments', [
+            'url' => $url,
+            'max_comments' => $options['max_comments'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
     public function postJson(string $path, array $params): array
     {
         return $this->decodeJson($this->request($path, $params)['body']);
