@@ -342,6 +342,57 @@ final class Client
      * @internal
      * @return array<mixed>
      */
+    /**
+     * Scrape a public TikTok creator profile and its newest videos.
+     *
+     * Returns the exact follower, following, like and video counts, bio, bio
+     * link, verified / private / organization / seller flags, avatar and a
+     * `videos` array of the creator's newest posts (up to 200), each in the
+     * full tiktokVideo() shape. Options: max_videos (0-200, default 10),
+     * video_details (default true), proxy_country. No login.
+     */
+    public function tiktokProfile(string $username, array $options = []): array
+    {
+        return $this->postJson('/social/tiktok-profile', [
+            'username' => $username,
+            'max_videos' => $options['max_videos'] ?? null,
+            'video_details' => (($options['video_details'] ?? true) === false) ? false : null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one TikTok video or photo post: exact plays, likes, comments,
+     * shares, saves and reposts, hashtags, mentions, author, music, play /
+     * download URLs, subtitle tracks and, with include_transcript, the
+     * transcript as text. Options: include_transcript, transcript_language,
+     * proxy_country.
+     */
+    public function tiktokVideo(string $url, array $options = []): array
+    {
+        return $this->postJson('/social/tiktok-video', [
+            'url' => $url,
+            'include_transcript' => ($options['include_transcript'] ?? false) ? true : null,
+            'transcript_language' => $options['transcript_language'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a TikTok hashtag: total views and videos plus its videos (up to
+     * 200). Options: max_videos (0-200, default 10), video_details (default
+     * true), proxy_country.
+     */
+    public function tiktokHashtag(string $hashtag, array $options = []): array
+    {
+        return $this->postJson('/social/tiktok-hashtag', [
+            'hashtag' => $hashtag,
+            'max_videos' => $options['max_videos'] ?? null,
+            'video_details' => (($options['video_details'] ?? true) === false) ? false : null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
     public function postJson(string $path, array $params): array
     {
         return $this->decodeJson($this->request($path, $params)['body']);

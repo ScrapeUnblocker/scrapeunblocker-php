@@ -388,4 +388,31 @@ final class ClientTest extends TestCase
         $this->assertSame('recovered', $client->getPageSource('https://example.com'));
         $this->assertCount(2, $this->urls);
     }
+    public function testTikTokPluginEndpoints(): void
+    {
+        $client = $this->client([
+            ['status' => 200, 'body' => json_encode(['username' => 'nasa', 'videos' => []])],
+            ['status' => 200, 'body' => json_encode(['id' => '7665075736742530317'])],
+            ['status' => 200, 'body' => json_encode(['hashtag' => 'nasa', 'videos' => []])],
+        ]);
+        $profile = $client->tiktokProfile('nasa', ['max_videos' => 5, 'video_details' => false]);
+        $video = $client->tiktokVideo('7665075736742530317', ['include_transcript' => true, 'transcript_language' => 'eng']);
+        $tag = $client->tiktokHashtag('#nasa', ['max_videos' => 0]);
+
+        $this->assertSame('nasa', $profile['username']);
+        $this->assertSame('7665075736742530317', $video['id']);
+        $this->assertSame('nasa', $tag['hashtag']);
+        $this->assertStringContainsString('/social/tiktok-profile', $this->urls[0]);
+        $this->assertStringContainsString('username=nasa', $this->urls[0]);
+        $this->assertStringContainsString('max_videos=5', $this->urls[0]);
+        $this->assertStringContainsString('video_details=false', $this->urls[0]);
+        $this->assertStringContainsString('/social/tiktok-video', $this->urls[1]);
+        $this->assertStringContainsString('include_transcript=true', $this->urls[1]);
+        $this->assertStringContainsString('transcript_language=eng', $this->urls[1]);
+        $this->assertStringContainsString('/social/tiktok-hashtag', $this->urls[2]);
+        $this->assertStringContainsString('hashtag=%23nasa', $this->urls[2]);
+        $this->assertStringContainsString('max_videos=0', $this->urls[2]);
+        $this->assertStringNotContainsString('video_details=', $this->urls[2]);
+    }
+
 }

@@ -192,6 +192,17 @@ if ($items['exactMatches']) {
 
 `marketplace` is any of the 19 regional eBay hosts (`ebay.com` default). `condition` is one of `new`, `open_box`, `refurbished`, `used`, `for_parts`; `sort` is one of `best_match` (default), `newly_listed`, `ending_soon`, `price_asc`, `price_desc`; `page_size` is 60, 120 or 240. `exactMatches` is `false` when eBay found nothing for the keyword and answered with its own loosely-related suggestions instead, so check it before using the listings.
 
+### TikTok
+
+```php
+$profile = $su->tiktokProfile('nasa', ['max_videos' => 5]);     // exact stats + newest videos
+$video = $su->tiktokVideo('https://www.tiktok.com/@nasa/video/7665075736742530317', ['include_transcript' => true]);
+$tag = $su->tiktokHashtag('nasa', ['max_videos' => 10]);
+echo $profile['stats']['followers'], ' ', $video['stats']['plays'], ' ', $tag['stats']['views'];
+```
+
+Profiles and hashtags list up to 10 videos in a couple of seconds from TikTok's server-rendered widget; ask for more (up to 200) and the real grid is scrolled in a browser session.
+
 ## Cookies and the serving proxy
 
 ```php

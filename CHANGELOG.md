@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 (2026-09-08)
+
+- Added `tiktokProfile()`, `tiktokVideo()` and `tiktokHashtag()` for the new TikTok plugin: a creator's exact follower / like / video counts with their newest videos (up to 200), any video or photo post with exact plays, likes, comments, shares, saves and reposts, hashtags, music, play / download URLs, subtitle tracks and an optional transcript, and a hashtag's total views and videos with its videos. No login.
+
 ## 0.2.1 (2026-09-02)
 
 - Added `metaAdLibrary()` for the new Meta Ad Library plugin (`/ads/meta-ad-library`). `metaAdLibrary($advertiser, $options)` returns an advertiser's Meta (Facebook) Ad Library ads as an array. Options: `country`, `active_status`, `media_type` and `max_ads`; omitted options are dropped and the API applies its own defaults.
