@@ -237,6 +237,22 @@ $hotels = $su->skyscanner->hotels(['destination' => 'Madrid', 'checkin' => '2026
 $cars = $su->skyscanner->carhire(['pickup' => 'Madrid', 'pickup_datetime' => '2026-09-01T10:00', 'dropoff_datetime' => '2026-09-03T10:00']);
 ```
 
+## Southwest plugin
+
+Southwest Airlines fares as raw booking JSON. Origin and destination are IATA
+codes; omit `return_date` for a one-way search:
+
+```php
+$flights = $su->southwest->flights([
+    'origin' => 'DAL', 'dest' => 'HOU',
+    'depart_date' => '2026-10-20', 'return_date' => '2026-10-27',
+]);
+```
+
+Options: `adults` (1-8, default 1), `fare_type` (`dollars` or `points`,
+default `dollars`), `proxy_country` (default `US`) and `max_attempts` (1-5,
+default 3).
+
 ## Error handling
 
 Non-2xx responses throw typed exceptions, all subclasses of `ScrapeUnblockerException`.

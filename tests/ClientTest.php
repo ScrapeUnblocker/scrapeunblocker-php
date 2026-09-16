@@ -278,6 +278,16 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('origin=London', $this->urls[0]);
     }
 
+    public function testSouthwestFlights(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['fares' => []])]]);
+        $out = $client->southwest->flights(['origin' => 'DAL', 'dest' => 'HOU']);
+
+        $this->assertSame(['fares' => []], $out);
+        $this->assertStringContainsString('/flights/southwest-quotes', $this->urls[0]);
+        $this->assertStringContainsString('origin=DAL', $this->urls[0]);
+    }
+
     /**
      * @dataProvider errorProvider
      */

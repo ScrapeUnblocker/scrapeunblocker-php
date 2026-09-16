@@ -35,7 +35,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.2.1';
+    private const VERSION = '0.4.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -47,6 +47,7 @@ final class Client
     private $transport;
 
     public readonly Skyscanner $skyscanner;
+    public readonly Southwest $southwest;
 
     /**
      * @param string|null $apiKey Your API key. Falls back to the
@@ -69,6 +70,7 @@ final class Client
         $this->maxRetries = $options['max_retries'] ?? 2;
         $this->transport = $options['transport'] ?? [$this, 'curlTransport'];
         $this->skyscanner = new Skyscanner($this);
+        $this->southwest = new Southwest($this);
     }
 
     /**

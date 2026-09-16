@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 (2026-09-16)
+
+- Added the Southwest Airlines flights plugin: `$su->southwest->flights([...])` posts to `/flights/southwest-quotes` and returns the raw booking / shopping JSON. Parameters: `origin` and `dest` (IATA codes), `depart_date` (`YYYY-MM-DD`), optional `return_date` (omit for one-way), `adults` (1-8, default 1), `fare_type` (`dollars` or `points`, default `dollars`), `proxy_country` (default `US`) and `max_attempts` (1-5, default 3). Mirrors the existing `skyscanner` namespace.
+
+No breaking changes.
+
 ## 0.3.0 (2026-09-08)
 
 - Added `tiktokProfile()`, `tiktokVideo()`, `tiktokHashtag()`, `tiktokSearch()` and `tiktokComments()` for the new TikTok plugin: a creator's exact follower / like / video counts with their newest videos (up to 200), any video or photo post with exact plays, likes, comments, shares, saves and reposts, hashtags, music, play / download URLs, subtitle tracks and an optional transcript, a hashtag's total views and videos with its videos, keyword search in TikTok's own ranking, and the comments of any post. No login.
