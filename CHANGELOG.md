@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 (2026-09-17)
+
+- Added `$su->googleImages($keyword, [...])` for the new Google Images plugin (`POST /images/google-search`): returns Google Images results as an array - each with the full-size `imageUrl` and its `sourceDomain`, plus the source page URL, title, source name, thumbnail URL, pixel dimensions and file size. Options: `gl` (ISO-2 lowercase market), `max_results` (1-100) and `proxy_country` (ISO-2).
+
+No breaking changes.
+
 ## 0.4.0 (2026-09-16)
 
 - Added the Southwest Airlines flights plugin: `$su->southwest->flights([...])` posts to `/flights/southwest-quotes` and returns the raw booking / shopping JSON. Parameters: `origin` and `dest` (IATA codes), `depart_date` (`YYYY-MM-DD`), optional `return_date` (omit for one-way), `adults` (1-8, default 1), `fare_type` (`dollars` or `points`, default `dollars`), `proxy_country` (default `US`) and `max_attempts` (1-5, default 3). Mirrors the existing `skyscanner` namespace.

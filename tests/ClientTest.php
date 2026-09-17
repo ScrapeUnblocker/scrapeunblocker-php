@@ -180,6 +180,19 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('gl=us', $this->urls[0]);
     }
 
+    public function testGoogleImagesTargetsImagesEndpoint(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
+        $out = $client->googleImages('golden retriever puppy', ['proxy_country' => 'US', 'gl' => 'us']);
+
+        $this->assertSame(['results' => []], $out);
+        $this->assertStringContainsString('/images/google-search', $this->urls[0]);
+        $this->assertStringContainsString('q=golden', $this->urls[0]);
+        $this->assertStringContainsString('proxy_country=US', $this->urls[0]);
+        $this->assertStringContainsString('gl=us', $this->urls[0]);
+        $this->assertStringNotContainsString('max_results=', $this->urls[0]);
+    }
+
     public function testMetaAdLibraryTargetsAdsEndpoint(): void
     {
         $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
