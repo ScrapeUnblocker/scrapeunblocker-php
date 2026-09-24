@@ -193,6 +193,17 @@ final class ClientTest extends TestCase
         $this->assertStringNotContainsString('max_results=', $this->urls[0]);
     }
 
+    public function testGoogleImagesSendsPages(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => [], 'pagesFetched' => 3])]]);
+        $out = $client->googleImages('golden retriever puppy', ['proxy_country' => 'DE', 'pages' => 3]);
+
+        $this->assertSame(3, $out['pagesFetched']);
+        $this->assertStringContainsString('pages=3', $this->urls[0]);
+        $this->assertStringContainsString('proxy_country=DE', $this->urls[0]);
+        $this->assertStringNotContainsString('gl=', $this->urls[0]);
+    }
+
     public function testMetaAdLibraryTargetsAdsEndpoint(): void
     {
         $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);

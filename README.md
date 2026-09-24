@@ -137,7 +137,7 @@ foreach ($local['results'] as $biz) {
 ## Google Images
 
 ```php
-$images = $su->googleImages('golden retriever puppy', ['proxy_country' => 'US', 'gl' => 'us']);
+$images = $su->googleImages('golden retriever puppy', ['proxy_country' => 'US', 'pages' => 3]);
 foreach ($images['results'] as $img) {
     echo "{$img['imageUrl']} {$img['sourceDomain']} {$img['title']}\n";
 }

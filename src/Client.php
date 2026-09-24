@@ -35,7 +35,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.5.0';
+    private const VERSION = '0.6.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -214,13 +214,16 @@ final class Client
      *
      * Returns image results, each with the full-size 'imageUrl' and its
      * 'sourceDomain', plus the source page URL, title, source name, thumbnail
-     * URL, pixel dimensions and file size. Options: 'gl' (ISO-2 lowercase
-     * market), 'max_results' (1-100) and 'proxy_country' (ISO-2).
+     * URL, pixel dimensions and file size. Options: 'proxy_country' (ISO-2;
+     * the Google market follows it), 'pages' (1-5, ~100 results each; each
+     * page fetched is billed as one request, see 'pagesFetched'), 'gl'
+     * (optional ISO-2 lowercase market override) and 'max_results' (1-500).
      */
     public function googleImages(string $keyword, array $options = []): array
     {
         return $this->postJson('/images/google-search', [
             'q' => $keyword,
+            'pages' => $options['pages'] ?? null,
             'gl' => $options['gl'] ?? null,
             'max_results' => $options['max_results'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,

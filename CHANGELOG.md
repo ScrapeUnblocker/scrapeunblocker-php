@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 (2026-09-24)
+
+- `googleImages()` takes a `pages` option (1-5): fetch up to five Google Images result pages of ~100 results each in one call. Each page fetched is billed as one request; the response's `pagesFetched` says how many. The Google market now follows `proxy_country` automatically, so `gl` is only an optional override, and `max_results` is an optional cap up to 500.
+
+No breaking changes.
+
 ## 0.5.0 (2026-09-17)
 
 - Added `$su->googleImages($keyword, [...])` for the new Google Images plugin (`POST /images/google-search`): returns Google Images results as an array - each with the full-size `imageUrl` and its `sourceDomain`, plus the source page URL, title, source name, thumbnail URL, pixel dimensions and file size. Options: `gl` (ISO-2 lowercase market), `max_results` (1-100) and `proxy_country` (ISO-2).
