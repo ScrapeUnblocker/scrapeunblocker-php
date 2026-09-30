@@ -13,6 +13,7 @@ use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
 use ScrapeUnblocker\Exception\NoSubscriptionException;
 use ScrapeUnblocker\Exception\NotFoundException;
+use ScrapeUnblocker\Exception\TargetNotFoundException;
 use ScrapeUnblocker\Exception\PaymentFailedException;
 use ScrapeUnblocker\Exception\PaymentRequiredException;
 use ScrapeUnblocker\Exception\QuotaExceededException;
@@ -35,7 +36,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.6.0';
+    private const VERSION = '0.7.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -103,6 +104,9 @@ final class Client
      *     ],
      * ]);
      * ```
+     *
+     * When the target page itself answers 404 or 410 this throws
+     * TargetNotFoundException (billed; the not-found page is on ->html).
      *
      * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
      */
@@ -480,7 +484,11 @@ final class Client
                 return ['status' => $status, 'body' => $body];
             }
 
-            throw $this->errorForStatus($status, $body);
+            $responseHeaders = [];
+            foreach ($result['headers'] ?? [] as $name => $value) {
+                $responseHeaders[strtolower((string) $name)] = is_array($value) ? implode(', ', $value) : (string) $value;
+            }
+            throw $this->errorForStatus($status, $body, $responseHeaders);
         }
     }
 
@@ -528,8 +536,49 @@ final class Client
         return $decoded;
     }
 
-    private function errorForStatus(int $status, string $body): ApiException
+    /**
+     * The API passes a target's "page does not exist" answer through with its
+     * status and an X-Origin-Status header. A 404 without that header is the
+     * API's own (a plugin lookup, a missing element) and returns null so the
+     * general NotFoundException applies.
+     *
+     * @param array<string,string> $headers lowercase header names
+     */
+    private function targetNotFound(int $status, string $body, array $headers): ?TargetNotFoundException
     {
+        $origin = $headers['x-origin-status'] ?? '';
+        if (!in_array($status, [404, 410], true) || $origin === '') {
+            return null;
+        }
+        $originStatus = ctype_digit(trim($origin)) ? (int) trim($origin) : $status;
+        $html = $body;
+        $decoded = json_decode($body, true);
+        if (is_array($decoded) && !array_is_list($decoded)) {
+            $html = is_string($decoded['html'] ?? null) ? $decoded['html'] : null;
+        }
+        $message = "Target page does not exist (HTTP {$originStatus}). This is the target's own "
+            . 'answer, not a block; the call is billed.';
+
+        return new TargetNotFoundException(
+            $message,
+            $status,
+            $body,
+            $originStatus,
+            $html,
+            $headers['x-destination-url'] ?? null,
+        );
+    }
+
+    /**
+     * @param array<string,string> $headers lowercase header names
+     */
+    private function errorForStatus(int $status, string $body, array $headers = []): ApiException
+    {
+        $targetError = $this->targetNotFound($status, $body, $headers);
+        if ($targetError !== null) {
+            return $targetError;
+        }
+
         $snippet = trim(preg_replace('/\s+/', ' ', $body) ?? '');
         if (strlen($snippet) > 200) {
             $snippet = substr($snippet, 0, 200) . '...';
@@ -598,10 +647,11 @@ final class Client
 
     /**
      * @param list<string> $headers
-     * @return array{status:int,body:string}
+     * @return array{status:int,body:string,headers:array<string,string>}
      */
     private function curlTransport(string $url, array $headers): array
     {
+        $responseHeaders = [];
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
@@ -611,6 +661,14 @@ final class Client
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_HEADERFUNCTION => static function ($handle, string $line) use (&$responseHeaders): int {
+                $parts = explode(':', $line, 2);
+                if (count($parts) === 2) {
+                    $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
+                }
+
+                return strlen($line);
+            },
         ]);
 
         $body = curl_exec($ch);
@@ -627,6 +685,6 @@ final class Client
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return ['status' => $status, 'body' => (string) $body];
+        return ['status' => $status, 'body' => (string) $body, 'headers' => $responseHeaders];
     }
 }

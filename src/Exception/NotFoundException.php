@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace ScrapeUnblocker\Exception;
 
 /**
- * The page loaded but the requested element was absent (HTTP 404).
+ * Something the call asked for does not exist (HTTP 404).
  *
- * Only getImage() throws this: the page rendered fine and contained no <img> tag.
+ * getImage() throws it when the page rendered fine but contained no <img> tag,
+ * and plugin methods throw it when the item they look up does not exist. When
+ * the target page itself answered 404 or 410, the more specific
+ * TargetNotFoundException subclass is thrown instead.
  */
 class NotFoundException extends ApiException
 {

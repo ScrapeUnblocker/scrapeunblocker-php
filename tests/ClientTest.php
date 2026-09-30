@@ -19,6 +19,7 @@ use ScrapeUnblocker\Exception\PaymentRequiredException;
 use ScrapeUnblocker\Exception\QuotaExceededException;
 use ScrapeUnblocker\Exception\RateLimitException;
 use ScrapeUnblocker\Exception\ScrapeUnblockerException;
+use ScrapeUnblocker\Exception\TargetNotFoundException;
 use ScrapeUnblocker\Exception\UnsupportedContentException;
 use ScrapeUnblocker\Exception\UpstreamOutageException;
 use ScrapeUnblocker\Exception\ValidationException;
@@ -388,6 +389,67 @@ final class ClientTest extends TestCase
             ["No valid subscription\n", NoSubscriptionException::class],
             ["Unauthorized\n", AuthenticationException::class],
         ];
+    }
+
+    /** @return list<array{int}> */
+    public static function targetStatuses(): array
+    {
+        return [[404], [410]];
+    }
+
+    /**
+     * @dataProvider targetStatuses
+     */
+    public function testTargetNotFoundThrowsWithThePage(int $status): void
+    {
+        $client = $this->client([[
+            'status' => $status,
+            'body' => '<html><h1>Not Found</h1></html>',
+            'headers' => ['X-Origin-Status' => (string) $status, 'X-Destination-URL' => 'https://example.com/gone'],
+        ]]);
+        try {
+            $client->getPageSource('https://example.com/gone');
+            $this->fail('expected TargetNotFoundException');
+        } catch (TargetNotFoundException $e) {
+            $this->assertInstanceOf(NotFoundException::class, $e);
+            $this->assertSame($status, $e->statusCode);
+            $this->assertSame($status, $e->originStatus);
+            $this->assertSame('<html><h1>Not Found</h1></html>', $e->html);
+            $this->assertSame('https://example.com/gone', $e->destinationUrl);
+            $this->assertStringContainsString('billed', $e->getMessage());
+            // Never retried: the target's answer will not change.
+            $this->assertCount(1, $this->urls);
+        }
+    }
+
+    public function testTargetNotFoundWithCookiesExposesTheHtml(): void
+    {
+        $body = json_encode(['html' => '<html>gone</html>', 'cookies' => [], 'proxy_address' => 'direct']);
+        $client = $this->client([['status' => 404, 'body' => $body, 'headers' => ['x-origin-status' => '404']]]);
+        try {
+            $client->getPageWithCookies('https://example.com/gone');
+            $this->fail('expected TargetNotFoundException');
+        } catch (TargetNotFoundException $e) {
+            $this->assertSame('<html>gone</html>', $e->html);
+            $this->assertSame($body, $e->body);
+        }
+    }
+
+    public function testApi404WithoutOriginStatusStaysNotFound(): void
+    {
+        $client = $this->client([['status' => 404, 'body' => 'nope']]);
+        try {
+            $client->getPageSource('https://example.com');
+            $this->fail('expected NotFoundException');
+        } catch (NotFoundException $e) {
+            $this->assertNotInstanceOf(TargetNotFoundException::class, $e);
+        }
+    }
+
+    public function testLegacy200WithOriginStatusReturnsThePage(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => '<html>gone</html>', 'headers' => ['x-origin-status' => '404']]]);
+        $this->assertSame('<html>gone</html>', $client->getPageSource('https://example.com/gone'));
     }
 
     /**

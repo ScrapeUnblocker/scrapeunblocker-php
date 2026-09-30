@@ -295,7 +295,8 @@ try {
 | `CreditLimitExceededException` | 402 | Unpaid balance is past the account's credit limit |
 | `PaymentFailedException` | 402 | A card payment was declined three times |
 | `BlockedException` | 403 | Blocked by bot protection on every path |
-| `NotFoundException` | 404 | Page loaded but held no image (`getImage` only) |
+| `NotFoundException` | 404 | What you asked for does not exist - no image on the page (`getImage`), or a plugin lookup found nothing |
+| `TargetNotFoundException` | 404 / 410 | The target page itself does not exist; carries `originStatus`, `html`, `destinationUrl` (subclass of `NotFoundException`, billed) |
 | `BrowserTimeoutException` | 408 | Our browser run timed out before the page was ready |
 | `UnsupportedContentException` | 415 | The URL serves something other than HTML |
 | `ValidationException` | 422 | Missing or wrong-typed parameter; `$body` holds the `detail` array |
@@ -304,6 +305,23 @@ try {
 | `ServerException` | 5xx | Unexpected server error, including a 504 upstream timeout |
 | `TimeoutException` | - | This client gave up locally before the API answered |
 | `ConnectionException` | - | Could not reach the API |
+
+### The target page does not exist (404 / 410)
+
+When the site you scrape answers 404 or 410 itself, the API passes that status through with an `X-Origin-Status` header, and the client throws `TargetNotFoundException`. It is the target's final answer, so it is never retried, and it is billed like any delivered page. The not-found page is on `->html`:
+
+```php
+use ScrapeUnblocker\Exception\TargetNotFoundException;
+
+try {
+    $html = $su->getPageSource('https://example.com/removed-listing');
+} catch (TargetNotFoundException $e) {
+    echo $e->originStatus;   // 404 or 410
+    echo $e->html;           // the target's own not-found page (can be empty)
+}
+```
+
+`TargetNotFoundException` extends `NotFoundException`, so `catch (NotFoundException $e)` catches it too. A 404 without `X-Origin-Status` is the API's own and stays a plain `NotFoundException`.
 
 Transient failures (429, 502, 503, 504 and network errors) are retried automatically with exponential backoff. A 401 or 402 is never retried - it clears when the key or the billing state changes, not on another attempt. Neither is billed or counted against your quota, because the request is refused before anything is scraped.
 
