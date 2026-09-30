@@ -300,6 +300,7 @@ try {
 | `BrowserTimeoutException` | 408 | Our browser run timed out before the page was ready |
 | `UnsupportedContentException` | 415 | The URL serves something other than HTML |
 | `ValidationException` | 422 | Missing or wrong-typed parameter; `$body` holds the `detail` array |
+| `NoDataExtractedException` | 422 | `getParsed()`: the page rendered but held no structured data; carries `detail` (subclass of `ValidationException`, not billed) |
 | `RateLimitException` | 429 | Too many requests |
 | `UpstreamOutageException` | 503 | The target origin is down |
 | `ServerException` | 5xx | Unexpected server error, including a 504 upstream timeout |
@@ -322,6 +323,25 @@ try {
 ```
 
 `TargetNotFoundException` extends `NotFoundException`, so `catch (NotFoundException $e)` catches it too. A 404 without `X-Origin-Status` is the API's own and stays a plain `NotFoundException`.
+
+With `getParsed()` the body is the parsed-data JSON (`{"data": {"page_type": "not_found", ...}}`), so `html` is `null` there; the raw JSON is on `->body`.
+
+### No structured data on the page (422)
+
+When `getParsed()` renders the page but can extract no structured data from it, the API answers 422 and the client throws `NoDataExtractedException`. The call is **not billed**, and retrying gives the same result - fetch the HTML with `getPageSource()` instead:
+
+```php
+use ScrapeUnblocker\Exception\NoDataExtractedException;
+
+try {
+    $page = $su->getParsed('https://example.com/some-page');
+} catch (NoDataExtractedException $e) {
+    echo $e->detail;   // the API's explanation
+    $html = $su->getPageSource('https://example.com/some-page');
+}
+```
+
+`NoDataExtractedException` extends `ValidationException`, so `catch (ValidationException $e)` catches it too.
 
 Transient failures (429, 502, 503, 504 and network errors) are retried automatically with exponential backoff. A 401 or 402 is never retried - it clears when the key or the billing state changes, not on another attempt. Neither is billed or counted against your quota, because the request is refused before anything is scraped.
 

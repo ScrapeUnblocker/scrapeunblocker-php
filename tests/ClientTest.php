@@ -12,6 +12,7 @@ use ScrapeUnblocker\Exception\BlockedException;
 use ScrapeUnblocker\Exception\BrowserTimeoutException;
 use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
+use ScrapeUnblocker\Exception\NoDataExtractedException;
 use ScrapeUnblocker\Exception\NoSubscriptionException;
 use ScrapeUnblocker\Exception\NotFoundException;
 use ScrapeUnblocker\Exception\PaymentFailedException;
@@ -432,6 +433,65 @@ final class ClientTest extends TestCase
         } catch (TargetNotFoundException $e) {
             $this->assertSame('<html>gone</html>', $e->html);
             $this->assertSame($body, $e->body);
+        }
+    }
+
+    public function testTargetNotFoundWithParsedDataHasNoHtml(): void
+    {
+        $body = json_encode(['data' => ['page_type' => 'not_found', 'data' => new \stdClass()]]);
+        $client = $this->client([['status' => 404, 'body' => $body, 'headers' => ['X-Origin-Status' => '404']]]);
+        try {
+            $client->getParsed('https://example.com/gone');
+            $this->fail('expected TargetNotFoundException');
+        } catch (TargetNotFoundException $e) {
+            // The body is parsed-data JSON, not the target's page.
+            $this->assertNull($e->html);
+            $this->assertSame($body, $e->body);
+            $this->assertSame(404, $e->originStatus);
+        }
+    }
+
+    public function testNoDataExtractedThrowsATypedException(): void
+    {
+        $body = json_encode([
+            'error' => 'no_data_extracted',
+            'detail' => 'The page was rendered, but no structured data could be extracted from it. '
+                . 'Not billed. Call without parsed_data to get the HTML.',
+        ]);
+        $client = $this->client([['status' => 422, 'body' => $body]]);
+        try {
+            $client->getParsed('https://example.com');
+            $this->fail('expected NoDataExtractedException');
+        } catch (NoDataExtractedException $e) {
+            $this->assertInstanceOf(ValidationException::class, $e);
+            $this->assertSame(422, $e->statusCode);
+            $this->assertStringContainsString('Not billed', $e->getMessage());
+            $this->assertStringStartsWith('The page was rendered', (string) $e->detail);
+            // Never retried: the same page yields the same result.
+            $this->assertCount(1, $this->urls);
+        }
+    }
+
+    public function testNoDataExtractedWithoutDetailStillSaysNotBilled(): void
+    {
+        $client = $this->client([['status' => 422, 'body' => json_encode(['error' => 'no_data_extracted'])]]);
+        try {
+            $client->getParsed('https://example.com');
+            $this->fail('expected NoDataExtractedException');
+        } catch (NoDataExtractedException $e) {
+            $this->assertStringContainsString('Not billed', $e->getMessage());
+            $this->assertNull($e->detail);
+        }
+    }
+
+    public function testPlain422StaysValidationException(): void
+    {
+        $client = $this->client([['status' => 422, 'body' => json_encode(['detail' => [['loc' => ['query', 'url']]]])]]);
+        try {
+            $client->getPageSource('https://example.com');
+            $this->fail('expected ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertNotInstanceOf(NoDataExtractedException::class, $e);
         }
     }
 

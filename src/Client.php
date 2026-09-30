@@ -12,6 +12,7 @@ use ScrapeUnblocker\Exception\ConnectionException;
 use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
 use ScrapeUnblocker\Exception\NoSubscriptionException;
+use ScrapeUnblocker\Exception\NoDataExtractedException;
 use ScrapeUnblocker\Exception\NotFoundException;
 use ScrapeUnblocker\Exception\TargetNotFoundException;
 use ScrapeUnblocker\Exception\PaymentFailedException;
@@ -36,7 +37,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.7.0';
+    private const VERSION = '0.7.1';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -156,7 +157,14 @@ final class Client
         ]);
     }
 
-    /** Fetch a URL and return structured JSON instead of HTML. */
+    /**
+     * Fetch a URL and return structured JSON instead of HTML.
+     *
+     * Throws NoDataExtractedException (not billed) when the page rendered but held
+     * no structured data - use getPageSource() for the HTML - and
+     * TargetNotFoundException (billed, ->html null) when the target page itself
+     * answered 404 or 410.
+     */
     public function getParsed(string $url, array $options = []): ParsedPage
     {
         $body = $this->request('/getPageSource', [
@@ -570,6 +578,29 @@ final class Client
     }
 
     /**
+     * parsed_data answers 422 with {"error": "no_data_extracted", "detail"} when the
+     * page rendered but held no structured data. Anything else returns null so the
+     * general ValidationException applies.
+     */
+    private function noDataExtracted(int $status, string $body): ?NoDataExtractedException
+    {
+        if ($status !== 422) {
+            return null;
+        }
+        $decoded = json_decode($body, true);
+        if (!is_array($decoded) || ($decoded['error'] ?? null) !== 'no_data_extracted') {
+            return null;
+        }
+        $detail = is_string($decoded['detail'] ?? null) && $decoded['detail'] !== '' ? $decoded['detail'] : null;
+        $message = $detail ?? 'The page was rendered, but no structured data could be extracted from it. Not billed.';
+        if (!str_contains(strtolower($message), 'not billed')) {
+            $message .= ' Not billed.';
+        }
+
+        return new NoDataExtractedException($message, $status, $body, $detail);
+    }
+
+    /**
      * @param array<string,string> $headers lowercase header names
      */
     private function errorForStatus(int $status, string $body, array $headers = []): ApiException
@@ -577,6 +608,10 @@ final class Client
         $targetError = $this->targetNotFound($status, $body, $headers);
         if ($targetError !== null) {
             return $targetError;
+        }
+        $noDataError = $this->noDataExtracted($status, $body);
+        if ($noDataError !== null) {
+            return $noDataError;
         }
 
         $snippet = trim(preg_replace('/\s+/', ' ', $body) ?? '');
