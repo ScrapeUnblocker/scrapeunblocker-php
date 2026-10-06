@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 (2026-10-06)
+
+- `getParsed()` on a page that rendered but held no structured data now returns a `ParsedPage` instead of throwing. The API answers this with a 200 again (billed like `getPageSource()`), and `ParsedPage` carries the new properties `dataExtracted` (false here), `detail` (the API's explanation) and `html` (the rendered page). A normal parse has `dataExtracted` true and `html` null. The same answer now covers a parser failure on the API side.
+- `NoDataExtractedException` is deprecated: the API no longer sends the 422 `no_data_extracted`. The class stays in the package so existing `catch` blocks still resolve.
+
+Behaviour change: code that caught `NoDataExtractedException` from `getParsed()` should check `$result->dataExtracted` instead.
+
 ## 0.7.1 (2026-09-30)
 
 - New `NoDataExtractedException` (extends `ValidationException`): thrown by `getParsed()` when the page rendered but no structured data could be extracted from it. The API answers 422 with `{"error": "no_data_extracted", "detail": ...}`; the exception carries `detail`. The call is not billed and is never retried - use `getPageSource()` for the HTML. Before, this came back as a billed 200 with empty `data`.

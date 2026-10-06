@@ -114,6 +114,7 @@ $result = $su->getParsed('https://www.walmart.com/ip/12345');
 echo $result->pageType;   // e.g. "product"
 echo $result->source;     // how it was extracted
 print_r($result->data);   // the fields
+var_dump($result->dataExtracted); // false when nothing could be extracted; then $result->html holds the page
 
 // If a parse ever comes back wrong, force a fresh set of rules:
 $fresh = $su->getParsed($url, ['refresh_rules' => true, 'rules_hint' => 'price is missing']);
@@ -300,7 +301,6 @@ try {
 | `BrowserTimeoutException` | 408 | Our browser run timed out before the page was ready |
 | `UnsupportedContentException` | 415 | The URL serves something other than HTML |
 | `ValidationException` | 422 | Missing or wrong-typed parameter; `$body` holds the `detail` array |
-| `NoDataExtractedException` | 422 | `getParsed()`: the page rendered but held no structured data; carries `detail` (subclass of `ValidationException`, not billed) |
 | `RateLimitException` | 429 | Too many requests |
 | `UpstreamOutageException` | 503 | The target origin is down |
 | `ServerException` | 5xx | Unexpected server error, including a 504 upstream timeout |
@@ -326,22 +326,19 @@ try {
 
 With `getParsed()` the body is the parsed-data JSON (`{"data": {"page_type": "not_found", ...}}`), so `html` is `null` there; the raw JSON is on `->body`.
 
-### No structured data on the page (422)
+### No structured data on the page
 
-When `getParsed()` renders the page but can extract no structured data from it, the API answers 422 and the client throws `NoDataExtractedException`. The call is **not billed**, and retrying gives the same result - fetch the HTML with `getPageSource()` instead:
+When `getParsed()` renders the page but can extract no structured data from it, the API still answers 200: the result has `dataExtracted` false, empty `data`, the API's explanation on `detail` and the rendered page on `html`. The call is billed like `getPageSource()`, since you get the page:
 
 ```php
-use ScrapeUnblocker\Exception\NoDataExtractedException;
-
-try {
-    $page = $su->getParsed('https://example.com/some-page');
-} catch (NoDataExtractedException $e) {
-    echo $e->detail;   // the API's explanation
-    $html = $su->getPageSource('https://example.com/some-page');
+$page = $su->getParsed('https://example.com/some-page');
+if (!$page->dataExtracted) {
+    echo $page->detail;   // the API's explanation
+    $html = $page->html;  // the rendered page - parse it yourself
 }
 ```
 
-`NoDataExtractedException` extends `ValidationException`, so `catch (ValidationException $e)` catches it too.
+`NoDataExtractedException` (for the 422 the API used to send here) is deprecated and no longer thrown; it stays in the package so existing `catch` blocks still resolve.
 
 Transient failures (429, 502, 503, 504 and network errors) are retried automatically with exponential backoff. A 401 or 402 is never retried - it clears when the key or the billing state changes, not on another attempt. Neither is billed or counted against your quota, because the request is refused before anything is scraped.
 

@@ -37,7 +37,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.7.1';
+    private const VERSION = '0.8.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -160,10 +160,10 @@ final class Client
     /**
      * Fetch a URL and return structured JSON instead of HTML.
      *
-     * Throws NoDataExtractedException (not billed) when the page rendered but held
-     * no structured data - use getPageSource() for the HTML - and
-     * TargetNotFoundException (billed, ->html null) when the target page itself
-     * answered 404 or 410.
+     * When the page rendered but held no structured data, the result has
+     * ->dataExtracted false, empty ->data and the rendered page on ->html (billed
+     * like getPageSource()). Throws TargetNotFoundException (billed, ->html null)
+     * when the target page itself answered 404 or 410.
      */
     public function getParsed(string $url, array $options = []): ParsedPage
     {
@@ -578,9 +578,9 @@ final class Client
     }
 
     /**
-     * parsed_data answers 422 with {"error": "no_data_extracted", "detail"} when the
-     * page rendered but held no structured data. Anything else returns null so the
-     * general ValidationException applies.
+     * Legacy: a 422 {"error": "no_data_extracted", "detail"} (the API no longer
+     * sends it). Anything else returns null so the general ValidationException
+     * applies.
      */
     private function noDataExtracted(int $status, string $body): ?NoDataExtractedException
     {

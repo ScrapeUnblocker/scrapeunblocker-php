@@ -16,6 +16,16 @@ final class ParsedPage
         public readonly mixed $data,
         /** The full JSON payload as returned by the API. */
         public readonly array $raw,
+        /**
+         * False when the page rendered but no structured data could be
+         * extracted from it: $data is empty and $html holds the rendered page.
+         * The call is billed like getPageSource().
+         */
+        public readonly bool $dataExtracted = true,
+        /** The rendered page, sent only when $dataExtracted is false. */
+        public readonly ?string $html = null,
+        /** The API's explanation, sent only when $dataExtracted is false. */
+        public readonly ?string $detail = null,
     ) {
     }
 
@@ -31,6 +41,9 @@ final class ParsedPage
             $inner['source'] ?? null,
             $inner['data'] ?? null,
             $payload,
+            ($payload['data_extracted'] ?? true) !== false,
+            is_string($payload['html'] ?? null) ? $payload['html'] : null,
+            is_string($payload['detail'] ?? null) ? $payload['detail'] : null,
         );
     }
 }

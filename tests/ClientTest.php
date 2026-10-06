@@ -156,6 +156,9 @@ final class ClientTest extends TestCase
         $this->assertInstanceOf(ParsedPage::class, $result);
         $this->assertSame('product', $result->pageType);
         $this->assertSame(['price' => 10], $result->data);
+        $this->assertTrue($result->dataExtracted);
+        $this->assertNull($result->html);
+        $this->assertNull($result->detail);
         $this->assertStringContainsString('parsed_data=true', $this->urls[0]);
         $this->assertStringContainsString('refresh_rules=true', $this->urls[0]);
     }
@@ -451,7 +454,27 @@ final class ClientTest extends TestCase
         }
     }
 
-    public function testNoDataExtractedThrowsATypedException(): void
+    public function testNoStructuredDataReturnsThePageWithDataExtractedFalse(): void
+    {
+        $payload = [
+            'data' => ['page_type' => 'unknown', 'data' => []],
+            'data_extracted' => false,
+            'detail' => 'The page was rendered, but no structured data could be extracted from it. '
+                . 'The rendered HTML is in `html`.',
+            'html' => '<html><body>hello</body></html>',
+        ];
+        $client = $this->client([['status' => 200, 'body' => json_encode($payload)]]);
+        $result = $client->getParsed('https://example.com');
+
+        $this->assertFalse($result->dataExtracted);
+        $this->assertSame('unknown', $result->pageType);
+        $this->assertSame([], $result->data);
+        $this->assertSame('<html><body>hello</body></html>', $result->html);
+        $this->assertStringStartsWith('The page was rendered', (string) $result->detail);
+        $this->assertCount(1, $this->urls);
+    }
+
+    public function testLegacyNoDataExtracted422StillMapsToTypedException(): void
     {
         $body = json_encode([
             'error' => 'no_data_extracted',
@@ -472,7 +495,7 @@ final class ClientTest extends TestCase
         }
     }
 
-    public function testNoDataExtractedWithoutDetailStillSaysNotBilled(): void
+    public function testLegacyNoDataExtractedWithoutDetailStillSaysNotBilled(): void
     {
         $client = $this->client([['status' => 422, 'body' => json_encode(['error' => 'no_data_extracted'])]]);
         try {
