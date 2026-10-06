@@ -112,7 +112,6 @@ print_r($out['elements']);
 ```php
 $result = $su->getParsed('https://www.walmart.com/ip/12345');
 echo $result->pageType;   // e.g. "product"
-echo $result->source;     // how it was extracted
 print_r($result->data);   // the fields
 var_dump($result->dataExtracted); // false when nothing could be extracted; then $result->html holds the page
 
