@@ -277,7 +277,7 @@ try {
 } catch (BlockedException $e) {
     // 403: the target blocked every bypass path (not billed)
 } catch (PaymentRequiredException $e) {
-    // 402: quota, credit limit, or a failed payment - fix billing
+    // 402: quota, credit limit, your monthly budget limit, or a failed payment - fix billing
 } catch (RateLimitException $e) {
     // 429: slow down
 } catch (UpstreamOutageException $e) {
@@ -290,9 +290,10 @@ try {
 | `InvalidRequestException` | 400 | Bad URL, unsupported scheme, or the API key header was not sent |
 | `AuthenticationException` | 401 | Key not recognised - typo, stray whitespace, or a rotated key |
 | `NoSubscriptionException` | 401 | Key is fine, but the account has no active plan |
-| `PaymentRequiredException` | 402 | Billing block - base class for the three below |
+| `PaymentRequiredException` | 402 | Billing block - base class for the four below |
 | `QuotaExceededException` | 402 | The plan's requests for this period are used up |
 | `CreditLimitExceededException` | 402 | Unpaid balance is past the account's credit limit |
+| `BudgetExceededException` | 402 | This billing period's spend reached the monthly budget limit you set in your profile |
 | `PaymentFailedException` | 402 | A card payment was declined three times |
 | `BlockedException` | 403 | Blocked by bot protection on every path |
 | `NotFoundException` | 404 | What you asked for does not exist - no image on the page (`getImage`), or a plugin lookup found nothing |
@@ -343,9 +344,10 @@ Transient failures (429, 502, 503, 504 and network errors) are retried automatic
 
 ### Billing errors (402)
 
-The three billing blocks share a status code and differ only in their message, so the client throws a dedicated exception for each:
+The four billing blocks share a status code and differ only in their message, so the client throws a dedicated exception for each:
 
 ```php
+use ScrapeUnblocker\Exception\BudgetExceededException;
 use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\PaymentFailedException;
 use ScrapeUnblocker\Exception\QuotaExceededException;
@@ -356,12 +358,16 @@ try {
     // plan quota (plus any overage allowance) is used up for this period
 } catch (CreditLimitExceededException $e) {
     // unpaid balance passed the account credit limit
+} catch (BudgetExceededException $e) {
+    // this period's spend reached the monthly budget limit you set in your profile
 } catch (PaymentFailedException $e) {
     // card declined three times - update the payment method
 }
 ```
 
-When more than one applies, the most serious wins: failed payment outranks credit limit, which outranks quota. All three lift by themselves once the billing state changes - access returns within about a minute, and the API key stays the same. One catch worth knowing: subscribing to a new plan does **not** clear `PaymentFailedException`, because the old unpaid invoice stays open until it is paid.
+When more than one applies, the most serious wins: failed payment outranks credit limit, which outranks quota, which outranks your own budget limit. All four lift by themselves once the billing state changes - access returns within about a minute, and the API key stays the same. One catch worth knowing: subscribing to a new plan does **not** clear `PaymentFailedException`, because the old unpaid invoice stays open until it is paid.
+
+`BudgetExceededException` means you set a monthly budget limit (EUR, excluding VAT) in your [profile](https://app.scrapeunblocker.com/dashboard/profile?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk) and this billing period's spend has reached it. Spend is counted the way your invoice is: the plan's fixed monthly fee, if any, plus the requests billed on top of it; requests paid from coupon credit do not count. The key works again at the start of the next billing period, or within about a minute after you raise or remove the limit.
 
 Full details for every status code: [docs.scrapeunblocker.com/errors](https://docs.scrapeunblocker.com/errors).
 

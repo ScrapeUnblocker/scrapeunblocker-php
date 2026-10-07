@@ -8,6 +8,7 @@ use ScrapeUnblocker\Exception\ApiException;
 use ScrapeUnblocker\Exception\AuthenticationException;
 use ScrapeUnblocker\Exception\BlockedException;
 use ScrapeUnblocker\Exception\BrowserTimeoutException;
+use ScrapeUnblocker\Exception\BudgetExceededException;
 use ScrapeUnblocker\Exception\ConnectionException;
 use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
@@ -37,7 +38,7 @@ use ScrapeUnblocker\Exception\ValidationException;
 final class Client
 {
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.8.0';
+    private const VERSION = '0.9.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -621,7 +622,7 @@ final class Client
         $base = match ($status) {
             400 => 'Invalid request (bad URL, unsupported scheme, or missing API key header)',
             401 => 'Authentication failed - key not recognised, or account has no active plan',
-            402 => 'Billing block - quota exceeded, credit limit exceeded, or a failed payment',
+            402 => 'Billing block - quota exceeded, credit limit exceeded, monthly budget limit reached, or a failed payment',
             403 => 'Target blocked by bot protection on every bypass path',
             404 => 'Requested element not found on the page',
             408 => 'Browser run timed out before the page was ready',
@@ -665,7 +666,7 @@ final class Client
     }
 
     /**
-     * The three billing blocks share a status code and differ only in their plain-text
+     * The four billing blocks share a status code and differ only in their plain-text
      * body. An unrecognised body falls back to PaymentRequiredException.
      */
     private function billingError(string $message, int $status, string $body): PaymentRequiredException
@@ -675,6 +676,7 @@ final class Client
         return match (true) {
             str_contains($text, 'quota exceeded') => new QuotaExceededException($message, $status, $body),
             str_contains($text, 'credit limit exceeded') => new CreditLimitExceededException($message, $status, $body),
+            str_contains($text, 'user set budget exceeded') => new BudgetExceededException($message, $status, $body),
             str_contains($text, 'payment failed') => new PaymentFailedException($message, $status, $body),
             default => new PaymentRequiredException($message, $status, $body),
         };

@@ -10,6 +10,7 @@ use ScrapeUnblocker\Exception\ApiException;
 use ScrapeUnblocker\Exception\AuthenticationException;
 use ScrapeUnblocker\Exception\BlockedException;
 use ScrapeUnblocker\Exception\BrowserTimeoutException;
+use ScrapeUnblocker\Exception\BudgetExceededException;
 use ScrapeUnblocker\Exception\CreditLimitExceededException;
 use ScrapeUnblocker\Exception\InvalidRequestException;
 use ScrapeUnblocker\Exception\NoDataExtractedException;
@@ -366,6 +367,7 @@ final class ClientTest extends TestCase
         return [
             ["Quota exceeded\n", QuotaExceededException::class],
             ["Credit limit exceeded\n", CreditLimitExceededException::class],
+            ["User set budget exceeded\n", BudgetExceededException::class],
             ["Payment failed - update payment method\n", PaymentFailedException::class],
             ['something new we do not know yet', PaymentRequiredException::class],
         ];

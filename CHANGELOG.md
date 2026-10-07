@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 (2026-10-07)
+
+- New `BudgetExceededException` (extends `PaymentRequiredException`): thrown when the API answers a 402 with `User set budget exceeded` - this billing period's spend has reached the monthly budget limit you set in your [profile](https://app.scrapeunblocker.com/dashboard/profile) (EUR, excluding VAT). The key works again at the start of the next billing period, or within about a minute after you raise or remove the limit. Like the other billing blocks it is not billed and never retried.
+
+No breaking changes: `catch (PaymentRequiredException $e)` still catches it. Before, this body fell back to a plain `PaymentRequiredException`.
+
 ## 0.8.0 (2026-10-06)
 
 - `getParsed()` on a page that rendered but held no structured data now returns a `ParsedPage` instead of throwing. The API answers this with a 200 again (billed like `getPageSource()`), and `ParsedPage` carries the new properties `dataExtracted` (false here), `detail` (the API's explanation) and `html` (the rendered page). A normal parse has `dataExtracted` true and `html` null. The same answer now covers a parser failure on the API side.
