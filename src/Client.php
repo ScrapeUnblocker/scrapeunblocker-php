@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.10.0';
+    private const VERSION = '0.10.1';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -327,7 +327,7 @@ final class Client
      * savings, availability, rating, review count, seller, feature bullets,
      * categories and images. Prices come back in the marketplace's own
      * currency: proxy_country defaults to the marketplace's home country
-     * (amazon.com -> US), pinning the exit over the ISP pool.
+     * (amazon.com -> US).
      *
      * Options: asin (10-char id, pair with marketplace) OR url (full product
      * URL), marketplace (default 'amazon.com'), proxy_country.

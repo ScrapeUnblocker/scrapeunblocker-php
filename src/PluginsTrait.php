@@ -625,8 +625,8 @@ trait PluginsTrait
      * and `breadcrumbs`. Up to 30 products (one page, one billed request). A keyword or category
      * TikTok has no listing for returns 404.
      *
-     * @param string $q Search keyword, e.g. 'led face mask' (or a TikTok Shop keyword URL like
-     * 'https://www.tiktok.com/shop/product/led-face-mask'). Either this or `category`.
+     * @param string|null $q Search keyword, e.g. 'led face mask' (or a TikTok Shop keyword URL
+     * like 'https://www.tiktok.com/shop/product/led-face-mask'). Either this or `category`.
      * @param array{category?: string, max_results?: int} $options
      *   - category: List a category instead of a keyword: a category URL
      * ('https://www.tiktok.com/shop/c/beauty-personal-care/601450') or its numeric id ('601450').
@@ -635,7 +635,7 @@ trait PluginsTrait
      * @return array<mixed>
      * Calls POST /social/tiktok-shop-search.
      */
-    public function tiktokShopSearch(string $q, array $options = []): array
+    public function tiktokShopSearch(?string $q = null, array $options = []): array
     {
         return $this->postJson('/social/tiktok-shop-search', [
             'q' => $q,
@@ -1220,7 +1220,11 @@ trait PluginsTrait
      * (ALDI Australia does not sell groceries online). Listings collect up to `max_results` from
      * `page` on, billed one unit per page.
      *
-     * @param array{theme?: string, sort?: string, page?: int, max_results?: int, proxy_country?: string} $options
+     * @param array{category?: string, theme?: string, sort?: string, page?: int, max_results?: int, proxy_country?: string} $options
+     *   - category: mode=category: a category link (https://www.aldi.com.au/products/dairy-eggs-
+     * fridge/milk/k/1111111160) or its key ('1111111160'; '1588161425841179' = Lower Prices).
+     * mode=specials: the Special Buys drop - its date ('2026-10-14') or link
+     * (https://www.aldi.com.au/special-buys/2026-10-14); blank = the current drop.
      *   - theme: mode=specials: one theme of the drop, e.g. 'Gardening' (see
      * `promotions[].themes`).
      *   - sort: Listing order: relevance, price_asc, price_desc, name_asc, name_desc. API default:
@@ -1237,6 +1241,7 @@ trait PluginsTrait
     {
         return $this->postJson('/groceries/aldi-au', [
             'mode' => "specials",
+            'category' => $options['category'] ?? null,
             'theme' => $options['theme'] ?? null,
             'sort' => $options['sort'] ?? null,
             'page' => $options['page'] ?? null,
@@ -3081,9 +3086,7 @@ trait PluginsTrait
      * fetched (`pagesFetched`).
      *
      * @param string $query Product name or keyword to search for (mode=search), e.g. 'crm'.
-     * @param array{page?: int, max_results?: int, proxy_country?: string} $options
-     *   - page: 1-based review page to start from: 25 reviews per page, at most 100 (Capterra's
-     * limit per product). Use the `nextPage` of a previous response to continue. API default: 1.
+     * @param array{max_results?: int, proxy_country?: string} $options
      *   - max_results: How many reviews to collect across pages (1-500, default 25); each page
      * fetched is one billed unit. With mode=search, how many products (1-20, default 20; one
      * page).
@@ -3097,7 +3100,6 @@ trait PluginsTrait
         return $this->postJson('/reviews/capterra', [
             'mode' => "search",
             'query' => $query,
-            'page' => $options['page'] ?? null,
             'max_results' => $options['max_results'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,
         ]);
@@ -3604,11 +3606,9 @@ trait PluginsTrait
      * @param string $appId App for mode=app / mode=reviews: the numeric App Store id
      * ('310633997'), 'id310633997', an apps.apple.com app URL, or a bundle id
      * ('net.whatsapp.WhatsApp').
-     * @param array{country?: string, lang?: string, max_results?: int, sort?: string, page?: int, proxy_country?: string} $options
+     * @param array{country?: string, max_results?: int, sort?: string, page?: int, proxy_country?: string} $options
      *   - country: App Store country (ISO-2), e.g. 'us', 'gb', 'de'. Prices, ratings and reviews
      * are per country. Default: the country in an app URL, else 'us'.
-     *   - lang: Listing language for mode=app / mode=search, e.g. 'fr' or 'fr-CA' (for countries
-     * whose store has several languages). Default: the store's own.
      *   - max_results: mode=search: apps to return (1-200). mode=reviews: reviews to collect
      * (1-500); Apple serves 50 per page and at most 10 pages per country, each page billed as one
      * request. API default: 50.
@@ -3627,7 +3627,6 @@ trait PluginsTrait
             'mode' => "reviews",
             'app_id' => $appId,
             'country' => $options['country'] ?? null,
-            'lang' => $options['lang'] ?? null,
             'max_results' => $options['max_results'] ?? null,
             'sort' => $options['sort'] ?? null,
             'page' => $options['page'] ?? null,
