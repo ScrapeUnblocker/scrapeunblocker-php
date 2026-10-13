@@ -51,7 +51,7 @@ final class PluginsTest extends TestCase
 
     public function testCoversEveryPublicPluginEndpoint(): void
     {
-        $this->assertGreaterThan(100, count(self::pluginMethods()));
+        $this->assertGreaterThan(90, count(self::pluginMethods()));
     }
 
     public function testEveryMethodPostsItsPositionalArguments(): void
