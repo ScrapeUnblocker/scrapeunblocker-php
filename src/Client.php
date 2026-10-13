@@ -37,8 +37,10 @@ use ScrapeUnblocker\Exception\ValidationException;
  */
 final class Client
 {
+    use PluginsTrait;
+
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.9.0';
+    private const VERSION = '0.10.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -521,18 +523,21 @@ final class Client
      */
     private function buildQuery(array $params): string
     {
-        $clean = [];
+        $parts = [];
         foreach ($params as $key => $value) {
             if ($value === null) {
                 continue;
             }
-            if (is_bool($value)) {
-                $value = $value ? 'true' : 'false';
+            // A list is a repeated parameter (stars=4&stars=5), as the API reads it.
+            foreach (is_array($value) ? $value : [$value] as $item) {
+                if (is_bool($item)) {
+                    $item = $item ? 'true' : 'false';
+                }
+                $parts[] = urlencode((string) $key) . '=' . urlencode((string) $item);
             }
-            $clean[$key] = $value;
         }
 
-        return http_build_query($clean);
+        return implode('&', $parts);
     }
 
     private function decodeJson(string $body): array

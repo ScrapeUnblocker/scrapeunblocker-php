@@ -119,6 +119,49 @@ var_dump($result->dataExtracted); // false when nothing could be extracted; then
 $fresh = $su->getParsed($url, ['refresh_rules' => true, 'rules_hint' => 'price is missing']);
 ```
 
+## Plugins
+
+Ready-made scrapers for specific sites that return structured JSON. Each
+method takes the plugin's main input as its first argument(s) and everything
+else in an options array keyed by the API's parameter names (snake_case);
+options you leave out are not sent, so the API's own defaults apply. Every
+parameter is documented on the
+[plugin pages](https://docs.scrapeunblocker.com/plugins/overview?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk).
+
+```php
+$products = $su->targetSearch('coffee maker', ['sort' => 'price_low', 'max_results' => 48]);
+$milk = $su->woolworthsProduct('888137');                         // one product, with nutrition
+$trends = $su->googleTrends(['coffee', 'tea'], ['geo' => 'US']);  // a list is sent comma-separated
+$reviews = $su->trustpilotReviews('www.nike.com', ['stars' => [4, 5]]);
+$jobs = $su->careerSiteJobs('https://jobs.ashbyhq.com/ramp', ['keyword' => 'engineer']);
+```
+
+<!-- plugin-methods:start -->
+| Category | Methods |
+| --- | --- |
+| Travel | `skyscanner.flights`, `skyscanner.hotels`, `skyscanner.carhire`, `bookingHotels`, `bookingReviews`, `airbnbSearch`, `airbnbRoom`, `airbnbReviews`, `tripadvisorList`, `tripadvisorReviews` |
+| Google | `googleLocal`, `googleImages`, `mapsPlaceDetails`, `googleTrends`, `googleShopping`, `googleJobs` |
+| Search engines | `bingSearch`, `bingImages`, `duckduckgoSearch`, `yahooSearch`, `yahooImages`, `braveSearch`, `braveImages` |
+| E-commerce | `amazonProduct`, `amazonSearch`, `amazonBestsellers`, `amazonReviews`, `walmartSearch`, `targetSearch`, `bestbuySearch`, `homedepotSearch`, `etsySearch`, `temuSearch`, `temuProduct`, `sheinSearch`, `zalandoSearch`, `aliexpressSearch`, `alibabaSearch`, `alibabaProduct`, `alibaba1688Search`, `alibaba1688Product`, `tiktokShopSearch`, `tiktokShopProduct`, `tiktokShopStore`, `oopbuySearch` |
+| Classifieds & Resale | `ebaySearch`, `vintedSearch`, `leboncoinSearch` |
+| Groceries | `woolworthsSearch`, `woolworthsCategory`, `woolworthsSpecials`, `woolworthsProduct`, `colesSearch`, `colesCategory`, `colesSpecials`, `colesProduct`, `aldiAuSearch`, `aldiAuCategory`, `aldiAuSpecials`, `aldiAuProduct` |
+| Real estate | `zillowSearch`, `zillowDetail`, `redfinSearch`, `redfinDetail`, `rightmoveSearch`, `idealistaSearch`, `idealistaDetail`, `immobilienscout24Search` |
+| Vehicles | `mobileDe`, `autoscout24Search` |
+| Jobs | `indeedJobs`, `glassdoorJobs`, `glassdoorReviews`, `glassdoorSalaries`, `naukriJobs`, `wellfoundJobs`, `wellfoundJob`, `wellfoundCompany`, `wellfoundCompanySearch`, `careerSiteJobs` |
+| Reviews & Companies | `trustpilotReviews`, `g2Reviews`, `g2Search`, `capterraReviews`, `capterraSearch`, `productHunt`, `crunchbaseCompany`, `crunchbaseSearch` |
+| Local & Maps | `yelpSearch`, `yelpBusiness`, `yelpReviews`, `naverPlaceSearch`, `naverPlaceDetails` |
+| Apps | `googlePlayApp`, `googlePlaySearch`, `appStoreApp`, `appStoreSearch`, `appStoreReviews` |
+| Video, Music & Communities | `youtubeChannel`, `youtubeSearch`, `youtubeComments`, `youtubeTranscript`, `spotifySearch`, `spotifyArtist`, `spotifyAlbum`, `spotifyTrack`, `spotifyPlaylist`, `telegramChannel`, `quoraQuestion`, `quoraProfile` |
+| SEO & Ads | `similarwebOverview`, `ahrefs`, `semrushOverview`, `metaAdLibrary` |
+<!-- plugin-methods:end -->
+
+Any plugin endpoint can also be called by path - handy for an endpoint added
+after your package version:
+
+```php
+$data = $su->plugin('/marketplace/target-search', ['query' => 'tv', 'max_results' => 24]);
+```
+
 ## Google search (SERP)
 
 ```php
@@ -201,19 +244,6 @@ if ($items['exactMatches']) {
 
 `marketplace` is any of the 19 regional eBay hosts (`ebay.com` default). `condition` is one of `new`, `open_box`, `refurbished`, `used`, `for_parts`; `sort` is one of `best_match` (default), `newly_listed`, `ending_soon`, `price_asc`, `price_desc`; `page_size` is 60, 120 or 240. `exactMatches` is `false` when eBay found nothing for the keyword and answered with its own loosely-related suggestions instead, so check it before using the listings.
 
-### TikTok
-
-```php
-$profile = $su->tiktokProfile('nasa', ['max_videos' => 5]);     // exact stats + newest videos
-$video = $su->tiktokVideo('https://www.tiktok.com/@nasa/video/7665075736742530317', ['include_transcript' => true]);
-$tag = $su->tiktokHashtag('nasa', ['max_videos' => 10]);
-$results = $su->tiktokSearch('space telescope', ['max_results' => 25]);   // TikTok's own ranking
-$comments = $su->tiktokComments('https://www.tiktok.com/@nasa/video/7665075736742530317', ['max_comments' => 40]);
-echo $profile['stats']['followers'], ' ', $video['stats']['plays'], ' ', $tag['stats']['views'], ' ', $comments['totalComments'];
-```
-
-Profiles and hashtags list up to 10 videos in a couple of seconds from TikTok's server-rendered widget; ask for more (up to 200) and the real grid is scrolled in a browser session.
-
 ## Cookies and the serving proxy
 
 ```php
@@ -245,22 +275,6 @@ $flights = $su->skyscanner->flights([
 $hotels = $su->skyscanner->hotels(['destination' => 'Madrid', 'checkin' => '2026-09-01', 'checkout' => '2026-09-03']);
 $cars = $su->skyscanner->carhire(['pickup' => 'Madrid', 'pickup_datetime' => '2026-09-01T10:00', 'dropoff_datetime' => '2026-09-03T10:00']);
 ```
-
-## Southwest plugin
-
-Southwest Airlines fares as raw booking JSON. Origin and destination are IATA
-codes; omit `return_date` for a one-way search:
-
-```php
-$flights = $su->southwest->flights([
-    'origin' => 'DAL', 'dest' => 'HOU',
-    'depart_date' => '2026-10-20', 'return_date' => '2026-10-27',
-]);
-```
-
-Options: `adults` (1-8, default 1), `fare_type` (`dollars` or `points`,
-default `dollars`), `proxy_country` (default `US`) and `max_attempts` (1-5,
-default 3).
 
 ## Error handling
 

@@ -1,6 +1,6 @@
 {
     "name": "scrapeunblocker/client",
-    "description": "Official PHP client for the ScrapeUnblocker web scraping API - JS-rendered pages that bypass Cloudflare, DataDome, PerimeterX and Akamai, plus Google SERP and Skyscanner flights/hotels/car-hire scraping as JSON.",
+    "description": "Official PHP client for the ScrapeUnblocker web scraping API - JS-rendered pages that bypass Cloudflare, DataDome, PerimeterX and Akamai, plus Google SERP and 100+ ready-made site plugins (Amazon, Walmart, Zillow, Google Trends and more) that return JSON.",
     "type": "library",
     "license": "MIT",
     "keywords": [

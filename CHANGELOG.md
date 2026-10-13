@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0 (2026-10-13)
+
+- 104 new plugin methods on `ScrapeUnblocker\Client`, one for every public plugin endpoint: e-commerce (Walmart, Target, Best Buy, Home Depot, Etsy, Temu, SHEIN, Zalando, AliExpress, Alibaba, 1688, TikTok Shop, Amazon Best Sellers and reviews), groceries (Woolworths, Coles, ALDI Australia), travel (Booking.com reviews, Airbnb listings and reviews, Tripadvisor), Google (Trends, Shopping, Jobs, Maps place details), Bing / DuckDuckGo / Yahoo / Brave search and images, real estate (Zillow, Redfin, Rightmove, Idealista, ImmobilienScout24), vehicles (mobile.de, AutoScout24), jobs (Indeed, Glassdoor, Naukri, Wellfound, company career sites), reviews and companies (Trustpilot, G2, Capterra, Product Hunt, Crunchbase), Yelp, Naver Place, Google Play, the App Store, YouTube, Spotify, Telegram, Quora, Similarweb, Ahrefs and Semrush. The README lists them by category; every parameter is on the docs plugin pages.
+- Each method takes the plugin's main input positionally and the rest in an options array keyed by the API's parameter names; options left out are not sent, so the API's defaults apply. Methods for one mode of a multi-mode endpoint set the mode themselves (`woolworthsProduct('888137')`, `spotifyArtist(...)`).
+- New `plugin($path, $params)` calls any plugin endpoint by path. A list value is sent as a repeated query parameter (`stars=4&stars=5`) instead of PHP's `stars[0]=4` form.
+
+No breaking changes.
+
 ## 0.9.0 (2026-10-07)
 
 - New `BudgetExceededException` (extends `PaymentRequiredException`): thrown when the API answers a 402 with `User set budget exceeded` - this billing period's spend has reached the monthly budget limit you set in your [profile](https://app.scrapeunblocker.com/dashboard/profile) (EUR, excluding VAT). The key works again at the start of the next billing period, or within about a minute after you raise or remove the limit. Like the other billing blocks it is not billed and never retried.
