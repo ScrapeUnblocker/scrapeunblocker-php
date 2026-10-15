@@ -7,8 +7,8 @@ namespace ScrapeUnblocker\Exception;
 /**
  * The target page itself does not exist (HTTP 404 or 410).
  *
- * Thrown by getPageSource(), getParsed() and getPageWithCookies() when the site
- * you asked for answered 404 or 410 on its own. The API passes that status
+ * Thrown by getPageSource(), getParsed(), getPageWithCookies() and getImage()
+ * when the site you asked for answered 404 or 410 on its own. The API passes that status
  * through and marks it with the X-Origin-Status header, which is how this is
  * told apart from an API-side 404. It is the target's final answer, not a
  * block, so it is never retried - and the call is billed, because the page was

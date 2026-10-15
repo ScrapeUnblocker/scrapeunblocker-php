@@ -298,6 +298,24 @@ final class ClientTest extends TestCase
         $this->assertSame("\x89PNG", $client->getImage('https://example.com/x.png'));
     }
 
+    public function testGetImageDeadImageThrowsTargetNotFound(): void
+    {
+        $client = $this->client([['status' => 404, 'body' => '', 'headers' => ['X-Origin-Status' => '404']]]);
+        try {
+            $client->getImage('https://example.com/gone.jpg');
+            $this->fail('expected TargetNotFoundException');
+        } catch (TargetNotFoundException $e) {
+            $this->assertSame(404, $e->originStatus);
+        }
+    }
+
+    public function testGetImagePageUrlThrowsUnsupportedContent(): void
+    {
+        $client = $this->client([['status' => 415, 'body' => 'The URL returned text/html, not an image.']]);
+        $this->expectException(UnsupportedContentException::class);
+        $client->getImage('https://example.com/product/1');
+    }
+
     public function testSkyscannerFlights(): void
     {
         $client = $this->client([['status' => 200, 'body' => json_encode(['itineraries' => []])]]);

@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.11.0';
+    private const VERSION = '0.11.1';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -367,7 +367,13 @@ final class Client
         ]);
     }
 
-    /** Fetch an image URL through the bypass chain and return its raw bytes. */
+    /**
+     * Fetch an image and return its bytes exactly as the image host serves them -
+     * the original format (JPEG, PNG, WebP, AVIF, GIF, SVG, ...), nothing
+     * re-encoded. $url must point at the image itself: a page URL throws
+     * UnsupportedContentException, and an image the host answers 404 or 410 for
+     * throws TargetNotFoundException.
+     */
     public function getImage(string $url, array $options = []): string
     {
         return $this->request('/getImage', [
@@ -631,7 +637,7 @@ final class Client
             403 => 'Target blocked by bot protection on every bypass path',
             404 => 'Requested element not found on the page',
             408 => 'Browser run timed out before the page was ready',
-            415 => 'URL does not serve HTML',
+            415 => 'URL serves a content type this call cannot return',
             422 => 'Validation error - see the detail array in the response body',
             429 => 'Rate limited - too many requests',
             503 => 'Upstream origin returned a server-side outage page',
