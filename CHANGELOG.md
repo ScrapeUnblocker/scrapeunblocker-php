@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0 (2026-10-15)
+
+- `googleImages` takes the `time_range` option (`'hour'`, `'day'`, `'week'`, `'month'` or `'year'`) to return only the images Google found in that recent period, so a query scanned on a schedule returns only what is new. For a fixed window pass `date_from` and/or `date_to` (`'YYYY-MM-DD'`) instead; the API answers 400 when `time_range` is combined with either.
+
+No breaking changes.
+
 ## 0.11.1 (2026-10-15)
 
 - `getImage` docs: the API now returns the image's original bytes and format (JPEG, PNG, WebP, AVIF, GIF, SVG, ...) instead of a PNG re-encode. The method still returns a binary `string`.

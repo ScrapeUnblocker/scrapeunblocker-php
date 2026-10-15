@@ -184,7 +184,14 @@ $images = $su->googleImages('golden retriever puppy', ['proxy_country' => 'US', 
 foreach ($images['results'] as $img) {
     echo "{$img['imageUrl']} {$img['sourceDomain']} {$img['title']}\n";
 }
+
+// Only images Google found in the last day (for a daily scan of the same query)
+$newImages = $su->googleImages('eiffel tower', ['proxy_country' => 'US', 'time_range' => 'day']);
+// Or a fixed window: date_from / date_to (YYYY-MM-DD), each one optional
+$october = $su->googleImages('eiffel tower', ['date_from' => '2026-10-01', 'date_to' => '2026-10-07']);
 ```
+
+`time_range` takes `hour`, `day`, `week`, `month` or `year` and cannot be combined with `date_from` / `date_to`.
 
 ## Meta Ad Library
 

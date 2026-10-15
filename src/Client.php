@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.11.1';
+    private const VERSION = '0.12.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -232,7 +232,11 @@ final class Client
      * URL, pixel dimensions and file size. Options: 'proxy_country' (ISO-2;
      * the Google market follows it), 'pages' (1-5, ~100 results each; each
      * page fetched is billed as one request, see 'pagesFetched'), 'gl'
-     * (optional ISO-2 lowercase market override) and 'max_results' (1-500).
+     * (optional ISO-2 lowercase market override), 'max_results' (1-500),
+     * 'time_range' ('hour', 'day', 'week', 'month', 'year': only images Google
+     * found in that recent period, e.g. the new ones since the last scheduled
+     * scan) or 'date_from' / 'date_to' ('YYYY-MM-DD', each optional, a fixed
+     * window). 'time_range' cannot be combined with 'date_from' / 'date_to'.
      */
     public function googleImages(string $keyword, array $options = []): array
     {
@@ -242,6 +246,9 @@ final class Client
             'gl' => $options['gl'] ?? null,
             'max_results' => $options['max_results'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,
+            'time_range' => $options['time_range'] ?? null,
+            'date_from' => $options['date_from'] ?? null,
+            'date_to' => $options['date_to'] ?? null,
         ]);
     }
 

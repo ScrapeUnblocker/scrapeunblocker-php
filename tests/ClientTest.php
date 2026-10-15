@@ -210,6 +210,26 @@ final class ClientTest extends TestCase
         $this->assertStringNotContainsString('gl=', $this->urls[0]);
     }
 
+    public function testGoogleImagesSendsTimeRange(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
+        $client->googleImages('eiffel tower', ['proxy_country' => 'US', 'time_range' => 'day']);
+
+        $this->assertStringContainsString('time_range=day', $this->urls[0]);
+        $this->assertStringNotContainsString('date_from=', $this->urls[0]);
+        $this->assertStringNotContainsString('date_to=', $this->urls[0]);
+    }
+
+    public function testGoogleImagesSendsDateWindow(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
+        $client->googleImages('eiffel tower', ['date_from' => '2026-10-01', 'date_to' => '2026-10-07']);
+
+        $this->assertStringContainsString('date_from=2026-10-01', $this->urls[0]);
+        $this->assertStringContainsString('date_to=2026-10-07', $this->urls[0]);
+        $this->assertStringNotContainsString('time_range=', $this->urls[0]);
+    }
+
     public function testMetaAdLibraryTargetsAdsEndpoint(): void
     {
         $client = $this->client([['status' => 200, 'body' => json_encode(['results' => []])]]);
