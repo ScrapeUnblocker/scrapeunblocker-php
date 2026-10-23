@@ -362,56 +362,6 @@ trait PluginsTrait
     }
 
     /**
-     * Search Temu by keyword.
-     *
-     * Searches Temu for `keyword` and returns the matching product urls (~40 per page). This is
-     * discovery only - fetch each url's data (name, price, rating, reviews, images) through `POST
-     * /goods/temu-product`. Use `sort` to pick Temu's own result order (relevance, best_selling,
-     * recent, price_asc, price_desc). Response time is typically ~2s.
-     *
-     * @param string $keyword Search phrase, e.g. 'kids toys' or 'phone case'.
-     * @param array{limit?: int, sort?: string} $options
-     *   - limit: Max product urls to return (one search page carries ~40). API default: 40.
-     *   - sort: Result order, using Temu's own sort: `relevance` (default), `best_selling` (top
-     * sales), `recent` (most recent), `price_asc` (price low to high) or `price_desc` (price high
-     * to low). API default: relevance.
-     * @return array<mixed>
-     * Calls POST /goods/temu-search.
-     */
-    public function temuSearch(string $keyword, array $options = []): array
-    {
-        return $this->postJson('/goods/temu-search', [
-            'keyword' => $keyword,
-            'limit' => $options['limit'] ?? null,
-            'sort' => $options['sort'] ?? null,
-        ]);
-    }
-
-    /**
-     * Scrape a Temu product page.
-     *
-     * Fetches a single Temu product and returns it as JSON: `name`, `description`, `brand`, `sku`,
-     * `price`, `priceCurrency`, `availability`, `itemCondition`, `rating`, `reviewCount`,
-     * `variantGroupId`, `images`, `reviews` (per-review rating and date; Temu masks the review
-     * text and author name in this document) and `video` (a `{contentUrl, thumbnailUrl,
-     * uploadDate}` object when the product ships one, else null). Temu serves product data only to
-     * search-engine crawlers, so this reads the ld+json SEO document rather than a browser render.
-     * The url must be a product page (path ends in `-g-<id>.html`).
-     *
-     * @param string $url Full Temu product url, e.g.
-     * 'https://www.temu.com/xyz-g-601099512345678.html'. Must be a product page (its path ends in
-     * `-g-<id>.html`); search/category urls have no product data and are rejected.
-     * @return array<mixed>
-     * Calls POST /goods/temu-product.
-     */
-    public function temuProduct(string $url): array
-    {
-        return $this->postJson('/goods/temu-product', [
-            'url' => $url,
-        ]);
-    }
-
-    /**
      * Scrape AliExpress search results.
      *
      * Searches AliExpress for `keyword` and returns the products as JSON: `title`, product `url`,
@@ -614,6 +564,68 @@ trait PluginsTrait
     }
 
     /**
+     * Scrape Wish product search.
+     *
+     * Searches Wish (wish.com) for `query` and returns `products`: `id`, `name`, `url`, `price`,
+     * `originalPrice` (crossed-out price, when discounted), `currency`, `priceText`, `priceUsd`
+     * (Wish's USD value, comparable across markets), `shipping`, `rating`, `ratingCount`,
+     * `numBought`, `inventory`, `colors`, `sizes`, `merchant` (`id`, `name`, `rating`,
+     * `ratingCount`, `feedback`, `country`), `originCountry`, `shipsFrom`, `tileText`,
+     * `isWishPick`, `position`, `image` and `thumbnail`, plus `totalResults` and `nextPage`. Wish
+     * shows the catalogue and prices of the request's country (`proxy_country`, default US).
+     * Collects up to `max_results` from `page` on, billed one unit per page.
+     *
+     * @param string $query What to search for, e.g. 'yoga mat' or 'phone case', or a
+     * wish.com/search/... link.
+     * @param array{page?: int, max_results?: int, proxy_country?: string} $options
+     *   - page: 1-based results page to start from (1-300, up to 30 products per page). API
+     * default: 1.
+     *   - max_results: Products to collect across pages, 1-300. Each page fetched is billed one
+     * unit. API default: 30.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'GB', 'DE').
+     * Wish shows the catalogue, prices and currency of that country. Default 'US' (prices in USD).
+     * @return array<mixed>
+     * Calls POST /marketplace/wish-search.
+     */
+    public function wishSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/marketplace/wish-search', [
+            'query' => $query,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Wish product.
+     *
+     * One Wish (wish.com) product as JSON: `id`, `name`, `url`, `price` (cheapest available
+     * variant), `originalPrice`, `currency`, `priceUsd`, `priceRange`, `shipping`, `inStock`,
+     * `rating`, `ratingCount`, `description`, `attributes`, `badges`, `images`, `merchant` (`id`,
+     * `name`, `handle`, `rating`, `ratingCount`, `tier`), `shipsFrom`, `shipsTo`,
+     * `deliveryEstimate`, `returnPolicy`, `variants` (`id`, `color`, `size`, `price`,
+     * `originalPrice`, `priceUsd`, `shipping`, `inventory`, `available`) and `topReviews`
+     * (`rating`, `comment`, `date`, `variant`, `upvotes`, `country`; no reviewer names). Prices
+     * are those of the request's country (`proxy_country`, default US). One unit per call.
+     *
+     * @param string $product A Wish product id ('5f96ad46b3f6480c7b9d7b52') or a product link
+     * (https://www.wish.com/product/..., /c/...).
+     * @param array{proxy_country?: string} $options
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'GB', 'DE').
+     * Wish shows the catalogue, prices and currency of that country. Default 'US' (prices in USD).
+     * @return array<mixed>
+     * Calls POST /marketplace/wish-product.
+     */
+    public function wishProduct(string $product, array $options = []): array
+    {
+        return $this->postJson('/marketplace/wish-product', [
+            'product' => $product,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
      * Search TikTok Shop products by keyword or category.
      *
      * Lists TikTok Shop (US) products for a keyword (`q`) or a category (`category`, URL or id).
@@ -702,6 +714,172 @@ trait PluginsTrait
         return $this->postJson('/social/tiktok-shop-store', [
             'store' => $store,
             'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Shopee product search.
+     *
+     * Searches a Shopee market (Singapore, Indonesia, Malaysia, Thailand, Vietnam, Philippines,
+     * Taiwan or Brazil - `country`) for `q` and returns one page of results: up to 40 `products`,
+     * each with `position`, `itemId`, `shopId`, `name`, `url`, `image`, `price`, `originalPrice`
+     * (when Shopee shows the crossed-out price), `discountPercent`, `currency`, `rating` (average
+     * stars), `location` (where the seller ships from) and `labels` (promotion badges). `sort`
+     * orders the results, `min_price` / `max_price` filter them, `shop_id` keeps one shop's
+     * products (or lists the shop without `q`), and `url` takes a Shopee search or category link
+     * instead. Shopee shows one page per search, so run several sort orders or price ranges for
+     * more products. `price` is what Shopee shows a signed-out shopper, which can be a promotional
+     * or new-customer price (see `labels`). Not available: stock, units sold, rating counts and
+     * reviews (Shopee does not publish them on the pages these endpoints read). One unit per call.
+     *
+     * @param string|null $q What to search for, e.g. 'iphone case' or 'air fryer'. Optional with
+     * `shop_id`.
+     * @param array{country?: string, shop_id?: string, url?: string, sort?: string, min_price?: int, max_price?: int, max_results?: int} $options
+     *   - country: Shopee market: 'sg' (shopee.sg), 'id' (shopee.co.id), 'my' (shopee.com.my),
+     * 'th' (shopee.co.th), 'vn' (shopee.vn), 'ph' (shopee.ph), 'tw' (shopee.tw), 'br'
+     * (shopee.com.br). Default 'sg'. Prices are in that market's currency.
+     *   - shop_id: Only this shop's products (the number in a shop's links, e.g. 442800909).
+     * Without `q` it lists the shop.
+     *   - url: A Shopee search or category link (e.g. https://shopee.sg/search?keyword=lego or
+     * https://shopee.sg/Cases-Covers-cat.11013350.11013434.11027839), used as it is; `q`,
+     * `country`, `shop_id`, `sort` and the price filters are then ignored.
+     *   - sort: Result order: relevance, sales, newest, price_asc, price_desc. API default:
+     * relevance.
+     *   - min_price: Lowest price, in the market's currency.
+     *   - max_price: Highest price, in the market's currency.
+     *   - max_results: Products to return, 1-40 (one Shopee results page). API default: 40.
+     * @return array<mixed>
+     * Calls POST /marketplace/shopee-search.
+     */
+    public function shopeeSearch(?string $q = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/shopee-search', [
+            'q' => $q,
+            'country' => $options['country'] ?? null,
+            'shop_id' => $options['shop_id'] ?? null,
+            'url' => $options['url'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'min_price' => $options['min_price'] ?? null,
+            'max_price' => $options['max_price'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Shopee product.
+     *
+     * One Shopee product as JSON, from a product link (`url`) or `shop_id` + `item_id` +
+     * `country`: `title`, `price`, `originalPrice`, `discountPercent`, `currency`, `rating`
+     * (average stars), `labels`, `images`, `shopLocation` and `shop` (`name`, `username`, `url`,
+     * `rating`, `ratingCount`, `followers`, `itemCount`, `responseRatePercent`, `isOfficialShop`,
+     * `isPreferredPlusSeller`, `location`, `joinedAt`). With `dataLevel: full` it also has
+     * `description`, `brand`, `condition`, `categories`, `videos`, `variations` (option names),
+     * `models` (`modelId`, `name`), `attributes`, `isOfficialShop`, `isPreOrder`,
+     * `estimatedShippingDays` and `createdAt`; `dataLevel: meta` means Shopee showed only the
+     * product's title and main image (some markets), with price, rating and shop still included.
+     * `price` is what Shopee shows a signed-out shopper, which can be a promotional or new-
+     * customer price (see `labels`). Not available: stock, units sold, rating counts and reviews
+     * (Shopee does not publish them on the pages these endpoints read). One unit per call.
+     *
+     * @param string|null $url A Shopee product link, e.g. https://shopee.sg/Beats-
+     * iPhone-17-Case-i.442800909.40270108836 or
+     * https://shopee.co.id/product/1426163997/40581375446.
+     * @param array{shop_id?: string, item_id?: string, country?: string} $options
+     *   - shop_id: Instead of `url`: the shop id (the first number after '-i.' in a product link).
+     *   - item_id: Instead of `url`: the item id (the second number after '-i.').
+     *   - country: With `shop_id` + `item_id`: Shopee market: 'sg' (shopee.sg), 'id'
+     * (shopee.co.id), 'my' (shopee.com.my), 'th' (shopee.co.th), 'vn' (shopee.vn), 'ph'
+     * (shopee.ph), 'tw' (shopee.tw), 'br' (shopee.com.br). Default 'sg'. Prices are in that
+     * market's currency.
+     * @return array<mixed>
+     * Calls POST /marketplace/shopee-product.
+     */
+    public function shopeeProduct(?string $url = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/shopee-product', [
+            'url' => $url,
+            'shop_id' => $options['shop_id'] ?? null,
+            'item_id' => $options['item_id'] ?? null,
+            'country' => $options['country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Taobao / Tmall keyword or category listings.
+     *
+     * Returns the products Taobao lists for a keyword `q` (or a `category`) as JSON: `products`
+     * (`position`, `itemId`, `title`, `url`, `image`, `price` in yuan with `currency` CNY,
+     * `priceLabel` (Taobao's price tag, e.g. 优惠价), `localPrices` (the same price in the
+     * storefront's currency, HKD and TWD), `shopId`, `shopName`, `descriptionMatchScore`,
+     * `freeShipping`, `categoryId`, `rootCategoryId`, `sellingPoints`, `reviewHighlights`),
+     * `totalResults` (how many listings Taobao reports), and `filterOptions` (brand and property
+     * facets; pass an option's `filter` value back as `filter`). Sort by relevance, sales or price
+     * and filter by a yuan price range (products whose listed price falls outside it are left out
+     * and counted in `droppedOutsidePriceRange`). Taobao shows signed-out visitors only the first
+     * 20 products of a list, so one call returns up to 20 (narrow with price ranges and filters to
+     * reach more). When Taobao has no list for the keyword, the call answers with the list of the
+     * closest keyword Taobao itself suggests and says so: `keywordSubstituted` true and
+     * `matchedKeyword`. Text comes in Chinese as sellers write it. Companion to
+     * `/marketplace/taobao-product`. One unit per call.
+     *
+     * @param string|null $q Keyword, in Chinese or English, e.g. '手机壳', '连衣裙', 'phone case'
+     * (Chinese keywords match far more listings). A Taobao search or list link works too. Give `q`
+     * or `category`.
+     * @param array{category?: string, sort?: string, price_min?: float, price_max?: float, filter?: string} $options
+     *   - category: A Taobao category id, e.g. '50005050', or a category list link
+     * (https://www.taobao.com/list/category/50005050.htm). Returns the category's best sellers;
+     * sort and filters apply to keyword searches only.
+     *   - sort: Order: relevance, sales, price_asc, price_desc (price in yuan). API default:
+     * relevance.
+     *   - price_min: Only products at or above this many yuan (CNY).
+     *   - price_max: Only products at or below this many yuan (CNY).
+     *   - filter: One brand or property filter, as the `filter` value of an option in
+     * `filterOptions` of an earlier answer, e.g. '20000-88634403'.
+     * @return array<mixed>
+     * Calls POST /marketplace/taobao-search.
+     */
+    public function taobaoSearch(?string $q = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/taobao-search', [
+            'q' => $q,
+            'category' => $options['category'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'price_min' => $options['price_min'] ?? null,
+            'price_max' => $options['price_max'] ?? null,
+            'filter' => $options['filter'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Taobao / Tmall item.
+     *
+     * Returns one Taobao or Tmall item (by `item_id` or `url`) as JSON: `itemId`, `url`,
+     * `platform` (taobao / tmall), `title` (`titleTruncated` when Taobao shortens it, as it does
+     * for Tmall items), `price`, `originalPrice` and `priceMax` (for a price range) in yuan with
+     * `currency` CNY, `image`, `location` (ships from), `categoryId`, `rootCategoryId`,
+     * `categoryPath`, `freeShipping`, `paymentMethods`, `sellableLanguages`, `rating` (positive /
+     * neutral / negative split and counts; Taobao items only, Tmall does not publish it),
+     * `latestReview` (`rating`, `content`, `date`, `variant`, `hasMedia`, `followUps`; no reviewer
+     * identity, so no review photo or video URLs) and `shop` (`shopId`, `name`, `url`, `logo`,
+     * `sellerType` B = Tmall / C = Taobao, `creditLevel`, `openedAt`, `itemCount`, `scores` for
+     * description, service and delivery). This is what Taobao shows signed-out visitors: variants
+     * (SKUs), stock and monthly sales need a Taobao login and are not included. Companion to
+     * `/marketplace/taobao-search`. One unit per call.
+     *
+     * @param string|null $itemId Numeric Taobao or Tmall item id, e.g. '765833709683' (the `id` in
+     * item.taobao.com/item.htm?id=...).
+     * @param array{url?: string} $options
+     *   - url: Taobao or Tmall item link, e.g. 'https://item.taobao.com/item.htm?id=765833709683'
+     * or 'https://detail.tmall.com/item.htm?id=1081364414020' (world.taobao.com, mobile and
+     * overseas item links work too). Either item_id or url is required.
+     * @return array<mixed>
+     * Calls POST /marketplace/taobao-product.
+     */
+    public function taobaoProduct(?string $itemId = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/taobao-product', [
+            'item_id' => $itemId,
+            'url' => $options['url'] ?? null,
         ]);
     }
 
@@ -1284,6 +1462,200 @@ trait PluginsTrait
     }
 
     /**
+     * Smyths Toys UK product stock, price, details and listings.
+     *
+     * Smyths Toys UK (smythstoys.com) as JSON, in four modes. `mode=product` (the default when
+     * `code` is given) returns one product's stock and price as the JSON Smyths' own storefront
+     * reads (`/api/uk/en-gb/product/product-inventory`), unchanged: `code`, `type`, `prices`
+     * (`price`, `value`, `wasPrice`, `thenPrice`, `rrpPrice`, `discountedPercentage`), `hdSection`
+     * (home delivery: `stockStatus`, `stockMessage`, `isAvailableForDelivery`, `isPreOrder`,
+     * `expectedStockDate`, delivery messages), `ccSection` (click & collect: the same stock fields
+     * plus `storeName`, `deliveryMessage`, `storeClosed`), `ageSuitabilities`, `carrierType`,
+     * marketing messages and decals. `code` takes a product code (`225095`), a product or bundle
+     * page link or a product-inventory link; one product is one billed request.
+     * `mode=details&code=` returns the JSON Smyths' product page is built from (`/api/uk/en-
+     * gb/product`, a bundle's from `/api/uk/en-gb/b`), unchanged, one billed request: `name`,
+     * `brand`, `ean`, `description` (HTML), `webFeatures` (the key features list), the safety
+     * warnings `euWarning`, `safetyText`, `urgentSafetyTextHeading` and
+     * `urgentSafetyTextDescription`, `productImages` (the gallery: `thumbnail`, `original` and
+     * `zoom` per `galleryIndex`, videos as `youtubeUrl`), `prices`, `averageRating`,
+     * `numberOfReviews`, `breadcrumb`, `categoryHierarchy`, `ageSuitabilities`, `assemblyRequired`
+     * and more; a bundle adds `subProducts`. `url` and `breadcrumb` paths are relative to
+     * https://www.smythstoys.com/uk/en-gb. `mode=search&query=` and `mode=category&category=` find
+     * product codes: they return `products` (`code`, `name`, `url`, `prices` with the same fields,
+     * `currency`, `image`, `averageRating`, `productType` - `BUNDLE` for bundles - and `decals`)
+     * with `totalResults`, `totalPages` and `nextPage`, 60 per page; a category also returns its
+     * `title`, `breadcrumbs` and `subcategories` (`code`, `name`, `count`). Smyths' search returns
+     * its best 240 matches at most, a category every product it holds. Listings collect up to
+     * `max_results` from `page` on, billed one unit per page.
+     *
+     * @param string $code mode=product and mode=details: product code ('225095'), product or
+     * bundle page link, or product-inventory link.
+     * @param array{bundle?: bool} $options
+     *   - bundle: mode=product and mode=details: ask for a bundle. A bundle page link sets it, and
+     * a code Smyths does not answer as a product is asked again as a bundle. API default: false.
+     * @return array<mixed>
+     * Calls POST /marketplace/smyths-inventory.
+     */
+    public function smythsInventory(string $code, array $options = []): array
+    {
+        return $this->postJson('/marketplace/smyths-inventory', [
+            'mode' => "product",
+            'code' => $code,
+            'bundle' => $options['bundle'] ?? null,
+        ]);
+    }
+
+    /**
+     * Smyths Toys UK product stock, price, details and listings.
+     *
+     * Smyths Toys UK (smythstoys.com) as JSON, in four modes. `mode=product` (the default when
+     * `code` is given) returns one product's stock and price as the JSON Smyths' own storefront
+     * reads (`/api/uk/en-gb/product/product-inventory`), unchanged: `code`, `type`, `prices`
+     * (`price`, `value`, `wasPrice`, `thenPrice`, `rrpPrice`, `discountedPercentage`), `hdSection`
+     * (home delivery: `stockStatus`, `stockMessage`, `isAvailableForDelivery`, `isPreOrder`,
+     * `expectedStockDate`, delivery messages), `ccSection` (click & collect: the same stock fields
+     * plus `storeName`, `deliveryMessage`, `storeClosed`), `ageSuitabilities`, `carrierType`,
+     * marketing messages and decals. `code` takes a product code (`225095`), a product or bundle
+     * page link or a product-inventory link; one product is one billed request.
+     * `mode=details&code=` returns the JSON Smyths' product page is built from (`/api/uk/en-
+     * gb/product`, a bundle's from `/api/uk/en-gb/b`), unchanged, one billed request: `name`,
+     * `brand`, `ean`, `description` (HTML), `webFeatures` (the key features list), the safety
+     * warnings `euWarning`, `safetyText`, `urgentSafetyTextHeading` and
+     * `urgentSafetyTextDescription`, `productImages` (the gallery: `thumbnail`, `original` and
+     * `zoom` per `galleryIndex`, videos as `youtubeUrl`), `prices`, `averageRating`,
+     * `numberOfReviews`, `breadcrumb`, `categoryHierarchy`, `ageSuitabilities`, `assemblyRequired`
+     * and more; a bundle adds `subProducts`. `url` and `breadcrumb` paths are relative to
+     * https://www.smythstoys.com/uk/en-gb. `mode=search&query=` and `mode=category&category=` find
+     * product codes: they return `products` (`code`, `name`, `url`, `prices` with the same fields,
+     * `currency`, `image`, `averageRating`, `productType` - `BUNDLE` for bundles - and `decals`)
+     * with `totalResults`, `totalPages` and `nextPage`, 60 per page; a category also returns its
+     * `title`, `breadcrumbs` and `subcategories` (`code`, `name`, `count`). Smyths' search returns
+     * its best 240 matches at most, a category every product it holds. Listings collect up to
+     * `max_results` from `page` on, billed one unit per page.
+     *
+     * @param string $code mode=product and mode=details: product code ('225095'), product or
+     * bundle page link, or product-inventory link.
+     * @param array{bundle?: bool} $options
+     *   - bundle: mode=product and mode=details: ask for a bundle. A bundle page link sets it, and
+     * a code Smyths does not answer as a product is asked again as a bundle. API default: false.
+     * @return array<mixed>
+     * Calls POST /marketplace/smyths-inventory.
+     */
+    public function smythsDetails(string $code, array $options = []): array
+    {
+        return $this->postJson('/marketplace/smyths-inventory', [
+            'mode' => "details",
+            'code' => $code,
+            'bundle' => $options['bundle'] ?? null,
+        ]);
+    }
+
+    /**
+     * Smyths Toys UK product stock, price, details and listings.
+     *
+     * Smyths Toys UK (smythstoys.com) as JSON, in four modes. `mode=product` (the default when
+     * `code` is given) returns one product's stock and price as the JSON Smyths' own storefront
+     * reads (`/api/uk/en-gb/product/product-inventory`), unchanged: `code`, `type`, `prices`
+     * (`price`, `value`, `wasPrice`, `thenPrice`, `rrpPrice`, `discountedPercentage`), `hdSection`
+     * (home delivery: `stockStatus`, `stockMessage`, `isAvailableForDelivery`, `isPreOrder`,
+     * `expectedStockDate`, delivery messages), `ccSection` (click & collect: the same stock fields
+     * plus `storeName`, `deliveryMessage`, `storeClosed`), `ageSuitabilities`, `carrierType`,
+     * marketing messages and decals. `code` takes a product code (`225095`), a product or bundle
+     * page link or a product-inventory link; one product is one billed request.
+     * `mode=details&code=` returns the JSON Smyths' product page is built from (`/api/uk/en-
+     * gb/product`, a bundle's from `/api/uk/en-gb/b`), unchanged, one billed request: `name`,
+     * `brand`, `ean`, `description` (HTML), `webFeatures` (the key features list), the safety
+     * warnings `euWarning`, `safetyText`, `urgentSafetyTextHeading` and
+     * `urgentSafetyTextDescription`, `productImages` (the gallery: `thumbnail`, `original` and
+     * `zoom` per `galleryIndex`, videos as `youtubeUrl`), `prices`, `averageRating`,
+     * `numberOfReviews`, `breadcrumb`, `categoryHierarchy`, `ageSuitabilities`, `assemblyRequired`
+     * and more; a bundle adds `subProducts`. `url` and `breadcrumb` paths are relative to
+     * https://www.smythstoys.com/uk/en-gb. `mode=search&query=` and `mode=category&category=` find
+     * product codes: they return `products` (`code`, `name`, `url`, `prices` with the same fields,
+     * `currency`, `image`, `averageRating`, `productType` - `BUNDLE` for bundles - and `decals`)
+     * with `totalResults`, `totalPages` and `nextPage`, 60 per page; a category also returns its
+     * `title`, `breadcrumbs` and `subcategories` (`code`, `name`, `count`). Smyths' search returns
+     * its best 240 matches at most, a category every product it holds. Listings collect up to
+     * `max_results` from `page` on, billed one unit per page.
+     *
+     * @param string $query mode=search: what to search for, e.g. 'lego star wars'. Smyths returns
+     * its best 240 matches at most - list a category to get every product of a range.
+     * @param array{sort?: string, page?: int, max_results?: int} $options
+     *   - sort: Listing order. search: relevance, bestsellers, price_asc, price_desc, rating_desc,
+     * newest (the first is the default). category: bestsellers, price_asc, price_desc,
+     * rating_desc, newest (the first is the default).
+     *   - page: 1-based listing page to start from (60 products per page). API default: 1.
+     *   - max_results: Products to collect across pages, 1-600. Each page fetched is billed one
+     * unit. API default: 60.
+     * @return array<mixed>
+     * Calls POST /marketplace/smyths-inventory.
+     */
+    public function smythsSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/marketplace/smyths-inventory', [
+            'mode' => "search",
+            'query' => $query,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Smyths Toys UK product stock, price, details and listings.
+     *
+     * Smyths Toys UK (smythstoys.com) as JSON, in four modes. `mode=product` (the default when
+     * `code` is given) returns one product's stock and price as the JSON Smyths' own storefront
+     * reads (`/api/uk/en-gb/product/product-inventory`), unchanged: `code`, `type`, `prices`
+     * (`price`, `value`, `wasPrice`, `thenPrice`, `rrpPrice`, `discountedPercentage`), `hdSection`
+     * (home delivery: `stockStatus`, `stockMessage`, `isAvailableForDelivery`, `isPreOrder`,
+     * `expectedStockDate`, delivery messages), `ccSection` (click & collect: the same stock fields
+     * plus `storeName`, `deliveryMessage`, `storeClosed`), `ageSuitabilities`, `carrierType`,
+     * marketing messages and decals. `code` takes a product code (`225095`), a product or bundle
+     * page link or a product-inventory link; one product is one billed request.
+     * `mode=details&code=` returns the JSON Smyths' product page is built from (`/api/uk/en-
+     * gb/product`, a bundle's from `/api/uk/en-gb/b`), unchanged, one billed request: `name`,
+     * `brand`, `ean`, `description` (HTML), `webFeatures` (the key features list), the safety
+     * warnings `euWarning`, `safetyText`, `urgentSafetyTextHeading` and
+     * `urgentSafetyTextDescription`, `productImages` (the gallery: `thumbnail`, `original` and
+     * `zoom` per `galleryIndex`, videos as `youtubeUrl`), `prices`, `averageRating`,
+     * `numberOfReviews`, `breadcrumb`, `categoryHierarchy`, `ageSuitabilities`, `assemblyRequired`
+     * and more; a bundle adds `subProducts`. `url` and `breadcrumb` paths are relative to
+     * https://www.smythstoys.com/uk/en-gb. `mode=search&query=` and `mode=category&category=` find
+     * product codes: they return `products` (`code`, `name`, `url`, `prices` with the same fields,
+     * `currency`, `image`, `averageRating`, `productType` - `BUNDLE` for bundles - and `decals`)
+     * with `totalResults`, `totalPages` and `nextPage`, 60 per page; a category also returns its
+     * `title`, `breadcrumbs` and `subcategories` (`code`, `name`, `count`). Smyths' search returns
+     * its best 240 matches at most, a category every product it holds. Listings collect up to
+     * `max_results` from `page` on, billed one unit per page.
+     *
+     * @param string $category mode=category: a category code ('SM060101') or a category page link
+     * (https://www.smythstoys.com/uk/en-gb/toys/action-figures-and-playsets/c/SM060101). The top
+     * categories are Toys SM0601, Baby SM0602, Outdoor SM0603 and Gaming & Tech SM0604; each
+     * listing names its subcategories.
+     * @param array{sort?: string, page?: int, max_results?: int} $options
+     *   - sort: Listing order. search: relevance, bestsellers, price_asc, price_desc, rating_desc,
+     * newest (the first is the default). category: bestsellers, price_asc, price_desc,
+     * rating_desc, newest (the first is the default).
+     *   - page: 1-based listing page to start from (60 products per page). API default: 1.
+     *   - max_results: Products to collect across pages, 1-600. Each page fetched is billed one
+     * unit. API default: 60.
+     * @return array<mixed>
+     * Calls POST /marketplace/smyths-inventory.
+     */
+    public function smythsCategory(string $category, array $options = []): array
+    {
+        return $this->postJson('/marketplace/smyths-inventory', [
+            'mode' => "category",
+            'category' => $category,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
      * Scrape Booking.com hotels.
      *
      * Searches Booking.com for `location` and returns the properties as JSON: `name`, `price`
@@ -1594,11 +1966,12 @@ trait PluginsTrait
      * Scrape Google Shopping product listings.
      *
      * Runs the Google Shopping vertical (`udm=28`) for `q` and returns the product cards as JSON:
-     * `title`, `price`, `currency`, `originalPrice`, `discount`, `merchant`, `rating` and
-     * `reviewCount`. Set `proxy_country`/`gl` to target a market (prices/merchants are region-
-     * specific) and `min_price`/`max_price` to filter. One render returns the first page of
-     * products (v1). Note: Google Shopping exposes no per-product URL, so `url` is omitted and
-     * `image` is best-effort.
+     * `title`, `price`, `currency`, `currencyCode`, `originalPrice`, `discount`, `merchant`,
+     * `rating`, `reviewCount` and Google's own ids for the product (`productId`, `catalogId`,
+     * `offerId` - stable across searches, for tracking one product). Set `proxy_country`/`gl` to
+     * target a market (prices/merchants are region-specific) and `min_price`/`max_price` to
+     * filter. One render returns the first page of products (v1). Note: Google Shopping exposes no
+     * per-product URL, so `url` is omitted and `image` is best-effort.
      *
      * @param string $q Product search term, e.g. 'wireless headphones'.
      * @param array{gl?: string, min_price?: int, max_price?: int, max_results?: int, proxy_country?: string} $options
@@ -1748,6 +2121,230 @@ trait PluginsTrait
             'gl' => $options['gl'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,
             'raw' => $options['raw'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Google Hotels search results (prices, ratings, amenities).
+     *
+     * Runs a Google Hotels search for `q` and returns the properties as JSON: `name`, `type`
+     * (hotel / vacation_rental), `propertyToken`, `price` for the stay (`perNight`,
+     * `perNightWithTaxes`, `total`, `totalWithTaxes`, `taxes`, Google's `display` string), `deal`,
+     * `rating`, `reviews`, `ratingsBreakdown`, `reviewTopics`, `hotelClass`, `stars`, `amenities`,
+     * `description`, `website`, `latitude`/`longitude`, `nearbyPlaces`, `thumbnail`, `images` and
+     * `mapsUrl`, plus the page's sponsored `ads`. A query naming one hotel returns just that hotel
+     * (`matchedProperty`). Set the stay with `check_in`/`check_out`, the party with `adults` and
+     * `children` (ages), and `currency`, `hl` (language) and `gl` (market). `applied` echoes the
+     * dates, currency and place Google actually used. Collect up to `max_results` across pages
+     * (each Google page is billed as one request, see `pagesFetched`); `nextPageToken` continues
+     * the list. Pass a `propertyToken` to `/travel/google-hotels-property` for every booking
+     * site's price.
+     *
+     * @param string $q What to search, as on Google Hotels: a place ('hotels in Paris', 'Lisbon'),
+     * an area or landmark, or a hotel name.
+     * @param array{check_in?: string, check_out?: string, adults?: int, children?: string, currency?: string, hl?: string, gl?: string, page_token?: string, max_results?: int} $options
+     *   - check_in: Check-in date, YYYY-MM-DD. Leave check_in and check_out empty for Google's
+     * default stay.
+     *   - check_out: Check-out date, YYYY-MM-DD (stays of up to 30 nights).
+     *   - adults: Number of adults (1-10). API default: 2.
+     *   - children: Ages of the children, comma-separated, e.g. '7,10' (up to 6).
+     *   - currency: Price currency, ISO 4217 (USD, EUR, GBP, ...). API default: USD.
+     *   - hl: Language of names, amenities and price formats, e.g. 'en', 'de', 'fr'. API default:
+     * en.
+     *   - gl: Market (2-letter country). Google localizes the booking sites to it. API default:
+     * us.
+     *   - page_token: `nextPageToken` of a previous response, to continue where it stopped.
+     *   - max_results: Properties to collect (1-100). Google serves about 20 per page; each page
+     * is billed as one request. API default: 20.
+     * @return array<mixed>
+     * Calls POST /travel/google-hotels.
+     */
+    public function googleHotels(string $q, array $options = []): array
+    {
+        return $this->postJson('/travel/google-hotels', [
+            'q' => $q,
+            'check_in' => $options['check_in'] ?? null,
+            'check_out' => $options['check_out'] ?? null,
+            'adults' => $options['adults'] ?? null,
+            'children' => $options['children'] ?? null,
+            'currency' => $options['currency'] ?? null,
+            'hl' => $options['hl'] ?? null,
+            'gl' => $options['gl'] ?? null,
+            'page_token' => $options['page_token'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Google Hotels property: prices from every booking site.
+     *
+     * Returns one property from Google Hotels as JSON, identified by the `property_token` of a
+     * `/travel/google-hotels` result: `offers` from every booking site Google lists for the stay
+     * (`provider`, `official` for the hotel's own site, `perNight`/`perNightWithTaxes`,
+     * `total`/`totalWithTaxes`, a Google `link` to book), `rooms` with room-level rates and free-
+     * cancellation deadlines where Google shows them, the lowest `price`, `address`, `phone`,
+     * `website`, `description` and `about`, `rating`, `reviews`, `ratingsBreakdown`,
+     * `reviewTopics`, `hotelClass`, `latitude`/`longitude`, `nearbyPlaces`, `images`, `placeId`
+     * and `mapsUrl`. Set the stay with `check_in`/`check_out`, the party with `adults`/`children`,
+     * and `currency`, `hl`, `gl`. Billed as one request.
+     *
+     * @param string $propertyToken `propertyToken` of a /travel/google-hotels result.
+     * @param array{check_in?: string, check_out?: string, adults?: int, children?: string, currency?: string, hl?: string, gl?: string} $options
+     *   - check_in: Check-in date, YYYY-MM-DD. Leave check_in and check_out empty for Google's
+     * default stay.
+     *   - check_out: Check-out date, YYYY-MM-DD (stays of up to 30 nights).
+     *   - adults: Number of adults (1-10). API default: 2.
+     *   - children: Ages of the children, comma-separated, e.g. '7,10' (up to 6).
+     *   - currency: Price currency, ISO 4217 (USD, EUR, GBP, ...). API default: USD.
+     *   - hl: Language, e.g. 'en', 'de', 'fr'. API default: en.
+     *   - gl: Market (2-letter country). Google localizes the booking sites to it. API default:
+     * us.
+     * @return array<mixed>
+     * Calls POST /travel/google-hotels-property.
+     */
+    public function googleHotelsProperty(string $propertyToken, array $options = []): array
+    {
+        return $this->postJson('/travel/google-hotels-property', [
+            'property_token' => $propertyToken,
+            'check_in' => $options['check_in'] ?? null,
+            'check_out' => $options['check_out'] ?? null,
+            'adults' => $options['adults'] ?? null,
+            'children' => $options['children'] ?? null,
+            'currency' => $options['currency'] ?? null,
+            'hl' => $options['hl'] ?? null,
+            'gl' => $options['gl'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Google News (search or section).
+     *
+     * Searches Google News for `q`, or lists a section with `topic` (world, nation, business,
+     * technology, entertainment, sports, science, health, top, or a topic id), and returns
+     * `articles`: `position`, `title`, `url` (the publisher's article URL), `source`, `sourceUrl`,
+     * `publishedAt` (ISO 8601 UTC), `imageUrl` (+ `imageWidth`/`imageHeight`), `authors`,
+     * `googleNewsId` and `googleNewsUrl`. Metadata only - no article text. Narrow a search with
+     * `when` (e.g. '1d') or `after`/`before` dates; pick the edition with `hl` and `gl`. Google
+     * News answers a search with up to about 100 articles (no paging - use date windows to go
+     * further back). One unit per call.
+     *
+     * @param string|null $q Search query, e.g. 'tesla' or '"web scraping"'. Google News operators
+     * work: quotes, OR, -word, site:reuters.com, intitle:. Pass either `q` or `topic`.
+     * @param array{topic?: string, hl?: string, gl?: string, when?: string, after?: string, before?: string, max_results?: int} $options
+     *   - topic: A section instead of a search: world, nation, business, technology,
+     * entertainment, sports, science, health, or top (the edition's headlines). A Google News
+     * topic id (the 'CAAq...' part of a news.google.com/topics/ URL) also works.
+     *   - hl: Language of the Google News edition, e.g. 'en', 'en-GB', 'de', 'fr', 'pt-BR'. API
+     * default: en.
+     *   - gl: Country of the Google News edition (2-letter code), e.g. 'us', 'gb', 'de'. API
+     * default: us.
+     *   - when: Only articles from the last period: '1h' to '720h', '1d', '7d', '2w', '1m', '1y'.
+     * Search (`q`) only.
+     *   - after: Only articles published after this date (YYYY-MM-DD). Search only.
+     *   - before: Only articles published before this date (YYYY-MM-DD). Search only.
+     *   - max_results: Most articles to return, 1-250. Google News returns up to about 100
+     * articles for a search and about 250 for a section; one call is billed one unit whatever the
+     * count. API default: 100.
+     * @return array<mixed>
+     * Calls POST /search/google-news.
+     */
+    public function googleNews(?string $q = null, array $options = []): array
+    {
+        return $this->postJson('/search/google-news', [
+            'q' => $q,
+            'topic' => $options['topic'] ?? null,
+            'hl' => $options['hl'] ?? null,
+            'gl' => $options['gl'] ?? null,
+            'when' => $options['when'] ?? null,
+            'after' => $options['after'] ?? null,
+            'before' => $options['before'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Google ads (Ads Transparency Center).
+     *
+     * Returns an advertiser's Google ads (Search, YouTube, Display, Shopping, Maps, Play) from the
+     * Google Ads Transparency Center for competitor analysis: per ad `creativeId`,
+     * `advertiserId`/`advertiserName`, `format` (text/image/video), `firstShown`, `lastShown`,
+     * `daysShown`, `matchedDomain`, the preview (`imageUrl` with size, or `previewUrl`),
+     * `googleCreativeId`, `googleCustomerId`, `adGroupId` and `adUrl`. Pick ads by `advertiser`
+     * (name or id) or `domain`; filter with `region`, `platform`, `format` and
+     * `date_from`/`date_to`. `include_details` adds per-region reach and targeting,
+     * `include_preview` the ad's texts and YouTube video. Collects up to `max_results` (continue
+     * with `page_token`); billed one unit per page of up to 100 ads, plus one per detail and per
+     * preview fetched (`callUnits`).
+     *
+     * @param array{advertiser?: string, domain?: string, region?: string, platform?: string, format?: string, date_from?: string, date_to?: string, sort?: string, max_results?: int, page_token?: string, include_details?: bool, include_preview?: bool} $options
+     *   - advertiser: Advertiser to pull ads for: a name (e.g. 'Nike') - resolved to the best-
+     * matching advertiser, reported in `advertisersUsed` (a single brand name no advertiser is
+     * named like falls back to its domain) - or an advertiser id ('AR16735076323512287233').
+     * Comma-separate up to 10. Pass `advertiser` or `domain`.
+     *   - domain: Website the ads point to, e.g. 'nike.com' (ads of every advertiser for that
+     * domain).
+     *   - region: Where the ads were shown: a 2-letter country code ('US', 'DE'), a comma list of
+     * them, or 'anywhere' (default).
+     *   - platform: Only ads shown on these platforms (comma list): search, youtube, maps, play,
+     * shopping.
+     *   - format: Only one ad format: text, image or video.
+     *   - date_from: Only ads shown on or after this date (YYYY-MM-DD).
+     *   - date_to: Only ads shown on or before this date (YYYY-MM-DD).
+     *   - sort: Order of the ads: 'last_shown' (most recently shown first). API default:
+     * last_shown.
+     *   - max_results: Ads to collect, 1-1000. Pages of up to 100 are fetched as needed; each page
+     * is billed one unit. API default: 100.
+     *   - page_token: Continue a previous call: its `nextPageToken`.
+     *   - include_details: Add `details` per ad: regions shown with first/last date (plus
+     * impressions per platform for EU regions), EU reach, disclosed targeting and all preview
+     * variations. One unit per ad, for up to 300 ads per call. API default: false.
+     *   - include_preview: Add `preview` per ad: what it shows - headline, description and display
+     * URL of text ads, product title and merchant of shopping ads, image URLs, the YouTube video
+     * of video ads. One unit per ad that has a preview script, for up to 40 ads per call. Search
+     * text ads often exist only as an image (`imageUrl`). API default: false.
+     * @return array<mixed>
+     * Calls POST /ads/google-ads-transparency.
+     */
+    public function googleAdsTransparency(array $options = []): array
+    {
+        return $this->postJson('/ads/google-ads-transparency', [
+            'advertiser' => $options['advertiser'] ?? null,
+            'domain' => $options['domain'] ?? null,
+            'region' => $options['region'] ?? null,
+            'platform' => $options['platform'] ?? null,
+            'format' => $options['format'] ?? null,
+            'date_from' => $options['date_from'] ?? null,
+            'date_to' => $options['date_to'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'page_token' => $options['page_token'] ?? null,
+            'include_details' => $options['include_details'] ?? null,
+            'include_preview' => $options['include_preview'] ?? null,
+        ]);
+    }
+
+    /**
+     * Look up Google advertisers (Ads Transparency Center).
+     *
+     * Finds advertisers on the Google Ads Transparency Center by name: `advertisers`
+     * (`advertiserId` to use with /ads/google-ads-transparency, `name`, `country`,
+     * `creativesMin`/`creativesMax` - how many ads they ran - and `verified`) and matching website
+     * `domains`. One unit per call.
+     *
+     * @param string $q Advertiser name or brand to look up, e.g. 'nike'.
+     * @param array{region?: string, max_results?: int} $options
+     *   - region: Count ads shown in these regions only: a 2-letter country code, a comma list, or
+     * 'anywhere' (default).
+     *   - max_results: Most advertisers (and domains) to return, 1-50. API default: 10.
+     * @return array<mixed>
+     * Calls POST /ads/google-ads-transparency-advertisers.
+     */
+    public function googleAdsTransparencyAdvertisers(string $q, array $options = []): array
+    {
+        return $this->postJson('/ads/google-ads-transparency-advertisers', [
+            'q' => $q,
+            'region' => $options['region'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
         ]);
     }
 
@@ -2881,6 +3478,73 @@ trait PluginsTrait
     }
 
     /**
+     * Scrape Upwork job posts.
+     *
+     * Searches Upwork jobs for `q` (or lists the newest jobs without it) and returns `jobs`: `id`,
+     * `ciphertext`, `url`, `title`, `description` (full text), `publishedAt`, `createdAt`,
+     * `renewedAt`, `jobType` (hourly / fixed), `hourlyMin`, `hourlyMax`, `budget` (fixed price),
+     * `currency`, `experienceLevel`, `duration`, `workload`, `skills`, plus `totalResults` and
+     * `nextStart`. Filter with `job_type`, `experience`, `budget`, `hourly_rate`, `client_hires`,
+     * `workload`, `duration`, `location`, `category`, `contract_to_hire`; sort by `relevance` or
+     * `recency`. `details=true` adds, per job: `proposals`, `interviewing`, `invitesSent`,
+     * `hired`, `positionsToHire`, `lastClientActivity`, `category`, `qualifications` and `client`
+     * (`country`, `city`, `timezone`, `paymentVerified`, `rating`, `reviews`, `totalSpent`,
+     * `hires`, `memberSince`; no client names). A private listing is marked `privateListing: true`
+     * without those fields. Upwork shows signed-out visitors the first 5000 results of a search.
+     * Billing: one unit per results page of up to 50 jobs, plus one per job page fetched with
+     * `details=true` (`callUnits`).
+     *
+     * @param string|null $q What to search for, e.g. 'python' or 'logo design'. Leave empty with
+     * sort=recency for the newest jobs.
+     * @param array{job_type?: string, experience?: string, budget?: string, hourly_rate?: string, client_hires?: string, workload?: string, duration?: string, location?: string, category?: string, contract_to_hire?: bool, sort?: string, start?: int, max_results?: int, details?: bool} $options
+     *   - job_type: hourly or fixed.
+     *   - experience: Experience level, comma list of: entry, intermediate, expert.
+     *   - budget: Fixed-price budget in USD, comma list of ranges like '100-499', '1000-4999' or
+     * '5000-'.
+     *   - hourly_rate: Hourly rate in USD, e.g. '25-50' or '40-'.
+     *   - client_hires: Client's past hires, comma list of: 0, 1-9, 10-.
+     *   - workload: part_time (under 30 hrs/week) or full_time.
+     *   - duration: Project length, comma list of: week, month, semester, ongoing (under a month,
+     * 1-3 months, 3-6 months, over 6 months).
+     *   - location: Client location, comma list of regions or countries as Upwork names them, e.g.
+     * 'Europe' or 'United States'.
+     *   - category: Job category, comma list of names (Accounting & Consulting, Admin Support,
+     * Customer Service, Data Science & Analytics, Design & Creative, Engineering & Architecture,
+     * It & Networking, Legal, Sales & Marketing, Translation, Web, Mobile & Software Dev, Writing)
+     * or category ids.
+     *   - contract_to_hire: Only contract-to-hire jobs. API default: false.
+     *   - sort: relevance (default with q) or recency (default without q).
+     *   - start: 0-based position of the first job, 0-4999 (Upwork shows signed-out visitors the
+     * first 5000 results); `nextStart` continues. API default: 0.
+     *   - max_results: Jobs to collect, 1-5000. Each results page (up to 50 jobs) is billed one
+     * unit. API default: 50.
+     *   - details: Add each job's page: proposals, client stats, qualifications. Up to 100 jobs;
+     * one more unit per job page fetched. API default: false.
+     * @return array<mixed>
+     * Calls POST /jobs/upwork.
+     */
+    public function upworkJobs(?string $q = null, array $options = []): array
+    {
+        return $this->postJson('/jobs/upwork', [
+            'q' => $q,
+            'job_type' => $options['job_type'] ?? null,
+            'experience' => $options['experience'] ?? null,
+            'budget' => $options['budget'] ?? null,
+            'hourly_rate' => $options['hourly_rate'] ?? null,
+            'client_hires' => $options['client_hires'] ?? null,
+            'workload' => $options['workload'] ?? null,
+            'duration' => $options['duration'] ?? null,
+            'location' => $options['location'] ?? null,
+            'category' => $options['category'] ?? null,
+            'contract_to_hire' => $options['contract_to_hire'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'start' => $options['start'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'details' => $options['details'] ?? null,
+        ]);
+    }
+
+    /**
      * Scrape Trustpilot company reviews.
      *
      * Returns a company's Trustpilot profile and reviews as JSON. `company` is the reviewed domain
@@ -3704,7 +4368,7 @@ trait PluginsTrait
      * @param array{lang?: string, format?: string, proxy_country?: string} $options
      *   - lang: Preferred caption language code, e.g. 'en'. Omit for the default/first track. A
      * prefix like 'en' matches 'en-US'.
-     *   - format: Output shape: segments, text. 'segments' returns timestamps; 'text' returns only
+     *   - format: Output shape: text, segments. 'segments' returns timestamps; 'text' returns only
      * the joined plaintext. API default: segments.
      *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE') for the
      * watch page. Defaults to US.

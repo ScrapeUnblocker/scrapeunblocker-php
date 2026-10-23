@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.0 (2026-10-23)
+
+- 16 new plugin methods on `Client`:
+  - Google: `googleHotels(string $q, array $options = [])` (Google Hotels search with stay prices, ratings and amenities), `googleHotelsProperty(string $propertyToken, ...)` (one property's prices from every booking site), `googleNews(?string $q, ...)` (a search, or a section with the `topic` option), `googleAdsTransparency(array $options = [])` (an advertiser's ads from the Ads Transparency Center, picked with the `advertiser` or `domain` option) and `googleAdsTransparencyAdvertisers(string $q, ...)` (advertiser lookup by name).
+  - E-commerce: `shopeeSearch(?string $q, ...)` and `shopeeProduct(?string $url, ...)` (Shopee in eight markets, `country` option), `taobaoSearch(?string $q, ...)` and `taobaoProduct(?string $itemId, ...)` (Taobao and Tmall), `smythsInventory(string $code, ...)`, `smythsDetails(string $code, ...)`, `smythsSearch(string $query, ...)` and `smythsCategory(string $category, ...)` (Smyths Toys UK), `wishSearch(string $query, ...)` and `wishProduct(string $product, ...)`.
+  - Jobs: `upworkJobs(?string $q, ...)`.
+- The first argument of `googleNews`, `shopeeSearch`, `shopeeProduct`, `taobaoSearch`, `taobaoProduct` and `upworkJobs` is nullable, for calls that pass another input instead: `googleNews(null, ['topic' => 'technology'])`, `shopeeProduct(null, ['shop_id' => ..., 'item_id' => ...])`, `taobaoProduct(null, ['url' => ...])`, `upworkJobs(null, ['sort' => 'recency'])` for the newest jobs.
+- `temuSearch` and `temuProduct` are deprecated: Temu's plugin is unlisted. They are kept for compatibility with the same signatures, now defined on `Client` instead of `PluginsTrait`, and are no longer listed in the README.
+- `googleShopping` docs: result cards also carry `currencyCode` and Google's own product ids (`productId`, `catalogId`, `offerId`).
+
+No breaking changes.
+
 ## 0.13.0 (2026-10-23)
 
 - New `getMarkdown(string $url, array $options = [])` returns the rendered page as clean Markdown for LLMs, agents and RAG pipelines: headings, lists, tables, absolute links, images with their alt text and code blocks, without scripts, styles, navigation, footers, forms or hidden elements. It sends `markdown=true` to `/getPageSource` and is billed like an HTML call.

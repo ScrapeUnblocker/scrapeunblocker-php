@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.13.0';
+    private const VERSION = '0.14.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -511,6 +511,45 @@ final class Client
             'url' => $url,
             'max_comments' => $options['max_comments'] ?? null,
             'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Search Temu by keyword. Returns the matching product urls (about 40 per
+     * page); fetch each url's data with temuProduct().
+     *
+     * @deprecated Temu's plugin is unlisted; kept for compatibility.
+     * @param string $keyword Search phrase, e.g. 'kids toys' or 'phone case'.
+     * @param array{limit?: int, sort?: string} $options
+     *   - limit: Max product urls to return (one search page carries ~40). API default: 40.
+     *   - sort: Result order, using Temu's own sort: `relevance` (default), `best_selling`,
+     *     `recent`, `price_asc` or `price_desc`.
+     * @return array<mixed>
+     * Calls POST /goods/temu-search.
+     */
+    public function temuSearch(string $keyword, array $options = []): array
+    {
+        return $this->postJson('/goods/temu-search', [
+            'keyword' => $keyword,
+            'limit' => $options['limit'] ?? null,
+            'sort' => $options['sort'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a Temu product page.
+     *
+     * @deprecated Temu's plugin is unlisted; kept for compatibility.
+     * @param string $url Full Temu product url, e.g.
+     * 'https://www.temu.com/xyz-g-601099512345678.html'. Must be a product page (its path ends in
+     * `-g-<id>.html`).
+     * @return array<mixed>
+     * Calls POST /goods/temu-product.
+     */
+    public function temuProduct(string $url): array
+    {
+        return $this->postJson('/goods/temu-product', [
+            'url' => $url,
         ]);
     }
 

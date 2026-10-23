@@ -738,4 +738,19 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('max_comments=100', $this->urls[1]);
     }
 
+    public function testTemuMethodsKeptForCompatibility(): void
+    {
+        $client = $this->client([
+            ['status' => 200, 'body' => json_encode(['urls' => []])],
+            ['status' => 200, 'body' => json_encode(['name' => 'Toy'])],
+        ]);
+        $productUrl = 'https://www.temu.com/xyz-g-601099512345678.html';
+        $this->assertSame(['urls' => []], $client->temuSearch('kids toys', ['limit' => 10, 'sort' => 'best_selling']));
+        $this->assertSame(['name' => 'Toy'], $client->temuProduct($productUrl));
+        $this->assertStringStartsWith('https://api.scrapeunblocker.com/goods/temu-search?', $this->urls[0]);
+        $this->assertSame(['keyword' => 'kids toys', 'limit' => '10', 'sort' => 'best_selling'], $this->query($this->urls[0]));
+        $this->assertStringStartsWith('https://api.scrapeunblocker.com/goods/temu-product?', $this->urls[1]);
+        $this->assertSame(['url' => $productUrl], $this->query($this->urls[1]));
+    }
+
 }

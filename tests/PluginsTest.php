@@ -117,4 +117,76 @@ final class PluginsTest extends TestCase
         $this->client()->plugin('/marketplace/target-search', ['query' => 'tv', 'sort' => null]);
         $this->assertSame('https://api.scrapeunblocker.com/marketplace/target-search?query=tv', $this->urls[0]);
     }
+
+    public function testGoogleHotelsSearchAndProperty(): void
+    {
+        $client = $this->client();
+        $client->googleHotels('hotels in Paris', ['check_in' => '2026-11-02', 'check_out' => '2026-11-05', 'currency' => 'EUR']);
+        $client->googleHotelsProperty('ChkIqp', ['adults' => 1, 'children' => '7,10']);
+        $this->assertStringContainsString('/travel/google-hotels?', $this->urls[0]);
+        $this->assertSame(
+            [['q', 'hotels in Paris'], ['check_in', '2026-11-02'], ['check_out', '2026-11-05'], ['currency', 'EUR']],
+            $this->query()
+        );
+        $this->assertStringContainsString('/travel/google-hotels-property?', $this->urls[1]);
+        $this->assertSame([['property_token', 'ChkIqp'], ['adults', '1'], ['children', '7,10']], $this->query(1));
+    }
+
+    public function testGoogleNewsSearchOrSection(): void
+    {
+        $client = $this->client();
+        $client->googleNews('tesla', ['when' => '1d', 'max_results' => 50]);
+        $client->googleNews(null, ['topic' => 'technology', 'gl' => 'gb']);
+        $this->assertSame([['q', 'tesla'], ['when', '1d'], ['max_results', '50']], $this->query());
+        $this->assertSame([['topic', 'technology'], ['gl', 'gb']], $this->query(1));
+    }
+
+    public function testGoogleAdsTransparencyAndAdvertisers(): void
+    {
+        $client = $this->client();
+        $client->googleAdsTransparency(['domain' => 'nike.com', 'format' => 'video', 'include_preview' => false]);
+        $client->googleAdsTransparencyAdvertisers('nike', ['max_results' => 5]);
+        $this->assertStringContainsString('/ads/google-ads-transparency?', $this->urls[0]);
+        $this->assertSame([['domain', 'nike.com'], ['format', 'video'], ['include_preview', 'false']], $this->query());
+        $this->assertStringContainsString('/ads/google-ads-transparency-advertisers?', $this->urls[1]);
+        $this->assertSame([['q', 'nike'], ['max_results', '5']], $this->query(1));
+    }
+
+    public function testShopeeSearchAndProduct(): void
+    {
+        $client = $this->client();
+        $client->shopeeSearch('lego', ['country' => 'my', 'sort' => 'sales', 'min_price' => 10]);
+        $client->shopeeProduct(null, ['shop_id' => '442800909', 'item_id' => '40270108836', 'country' => 'sg']);
+        $this->assertSame([['q', 'lego'], ['country', 'my'], ['sort', 'sales'], ['min_price', '10']], $this->query());
+        $this->assertStringContainsString('/marketplace/shopee-product?', $this->urls[1]);
+        $this->assertSame([['shop_id', '442800909'], ['item_id', '40270108836'], ['country', 'sg']], $this->query(1));
+    }
+
+    public function testTaobaoSearchAndProduct(): void
+    {
+        $client = $this->client();
+        $client->taobaoSearch('phone case', ['sort' => 'sales', 'price_max' => 99.5, 'filter' => '20000-88634403']);
+        $client->taobaoProduct(null, ['url' => 'https://item.taobao.com/item.htm?id=765833709683']);
+        $this->assertSame(
+            [['q', 'phone case'], ['sort', 'sales'], ['price_max', '99.5'], ['filter', '20000-88634403']],
+            $this->query()
+        );
+        $this->assertSame([['url', 'https://item.taobao.com/item.htm?id=765833709683']], $this->query(1));
+    }
+
+    public function testUpworkJobsWithoutAQuery(): void
+    {
+        $this->client()->upworkJobs(null, ['sort' => 'recency', 'job_type' => 'hourly', 'details' => true]);
+        $this->assertStringContainsString('/jobs/upwork?', $this->urls[0]);
+        $this->assertSame([['job_type', 'hourly'], ['sort', 'recency'], ['details', 'true']], $this->query());
+    }
+
+    public function testSmythsAndWish(): void
+    {
+        $client = $this->client();
+        $client->smythsSearch('lego', ['max_results' => 24]);
+        $client->wishSearch('phone case', ['page' => 2]);
+        $this->assertSame([['mode', 'search'], ['query', 'lego'], ['max_results', '24']], $this->query());
+        $this->assertSame([['query', 'phone case'], ['page', '2']], $this->query(1));
+    }
 }
