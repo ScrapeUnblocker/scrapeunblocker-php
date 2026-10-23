@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.12.0';
+    private const VERSION = '0.13.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -118,6 +118,46 @@ final class Client
     {
         return $this->request('/getPageSource', [
             'url' => $url,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'time_sleep' => $options['time_sleep'] ?? null,
+            'method' => $options['method'] ?? null,
+            'value' => $options['value'] ?? null,
+            'method_timeout' => $options['method_timeout'] ?? null,
+            'steps' => $this->encodeSteps($options['steps'] ?? null),
+        ])['body'];
+    }
+
+    /**
+     * Fetch a URL and return the rendered page as clean Markdown.
+     *
+     * Built for LLMs, agents and RAG pipelines. The page is rendered in a real
+     * browser behind the same anti-bot bypass chain as getPageSource(), then
+     * converted to Markdown: headings, lists, tables, absolute links, images
+     * with their alt text and code blocks, without scripts, styles, navigation,
+     * footers, forms or hidden elements. Billed like an HTML call.
+     *
+     * Options: 'main_content_only' (default true) keeps only the page's main
+     * content, without navigation, the site header, footer and sidebars; pass
+     * false to convert the whole page. 'proxy_country', 'time_sleep', 'method',
+     * 'value', 'method_timeout' and 'steps' work as in getPageSource().
+     *
+     * ```php
+     * $md = $su->getMarkdown('https://example.com/article');
+     * $full = $su->getMarkdown('https://example.com', ['main_content_only' => false]);
+     * ```
+     *
+     * When the target page itself answers 404 or 410 this throws
+     * TargetNotFoundException (billed; the not-found page, as Markdown, is on
+     * ->html).
+     *
+     * @param array{main_content_only?:bool,proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
+     */
+    public function getMarkdown(string $url, array $options = []): string
+    {
+        return $this->request('/getPageSource', [
+            'url' => $url,
+            'markdown' => true,
+            'main_content_only' => ($options['main_content_only'] ?? true) === false ? false : null,
             'proxy_country' => $options['proxy_country'] ?? null,
             'time_sleep' => $options['time_sleep'] ?? null,
             'method' => $options['method'] ?? null,

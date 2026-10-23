@@ -148,6 +148,95 @@ final class ClientTest extends TestCase
         }
     }
 
+    private const MARKDOWN = "# A Light in the Attic\n\n| Price | £51.77 |\n| --- | --- |\n";
+
+    /**
+     * @return array<string,string>
+     */
+    private function query(string $url): array
+    {
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        return $query;
+    }
+
+    public function testGetMarkdownSendsMarkdownAndReturnsTheText(): void
+    {
+        $client = $this->client([[
+            'status' => 200,
+            'body' => self::MARKDOWN,
+            'headers' => ['content-type' => 'text/markdown; charset=utf-8'],
+        ]]);
+        $out = $client->getMarkdown('https://example.com/book', ['proxy_country' => 'US']);
+
+        $this->assertSame(self::MARKDOWN, $out);
+        $this->assertSame('/getPageSource', parse_url($this->urls[0], PHP_URL_PATH));
+        $query = $this->query($this->urls[0]);
+        $this->assertSame('https://example.com/book', $query['url']);
+        $this->assertSame('true', $query['markdown']);
+        $this->assertSame('US', $query['proxy_country']);
+        // The API keeps only the main content by default, so true is never sent.
+        $this->assertArrayNotHasKey('main_content_only', $query);
+        // The other response formats cannot be combined with markdown.
+        foreach (['parsed_data', 'get_cookies', 'list_elements'] as $other) {
+            $this->assertArrayNotHasKey($other, $query);
+        }
+        $this->assertContains('x-scrapeunblocker-key: test-key', $this->lastHeaders);
+    }
+
+    public function testGetMarkdownSendsMainContentOnlyFalseOnlyWhenFalse(): void
+    {
+        $client = $this->client([
+            ['status' => 200, 'body' => '# x'],
+            ['status' => 200, 'body' => '# x'],
+        ]);
+        $client->getMarkdown('https://example.com', ['main_content_only' => false]);
+        $client->getMarkdown('https://example.com', ['main_content_only' => true]);
+        $first = $this->query($this->urls[0]);
+        $second = $this->query($this->urls[1]);
+
+        $this->assertSame('true', $first['markdown']);
+        $this->assertSame('false', $first['main_content_only']);
+        $this->assertArrayNotHasKey('main_content_only', $second);
+    }
+
+    public function testGetMarkdownPassesRenderOptionsAndSteps(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => '# x']]);
+        $steps = [['action' => 'click', 'selector' => '#more']];
+        $client->getMarkdown('https://example.com', [
+            'time_sleep' => 2,
+            'method' => 'css',
+            'value' => '.content',
+            'method_timeout' => 10,
+            'steps' => $steps,
+        ]);
+        $query = $this->query($this->urls[0]);
+
+        $this->assertSame('2', $query['time_sleep']);
+        $this->assertSame('css', $query['method']);
+        $this->assertSame('.content', $query['value']);
+        $this->assertSame('10', $query['method_timeout']);
+        $this->assertSame($steps, json_decode($query['steps'], true));
+    }
+
+    public function testGetMarkdownTargetNotFoundCarriesTheMarkdownPage(): void
+    {
+        $client = $this->client([[
+            'status' => 404,
+            'body' => '# Not Found',
+            'headers' => ['X-Origin-Status' => '404'],
+        ]]);
+        try {
+            $client->getMarkdown('https://example.com/gone');
+            $this->fail('expected TargetNotFoundException');
+        } catch (TargetNotFoundException $e) {
+            $this->assertSame(404, $e->originStatus);
+            $this->assertSame('# Not Found', $e->html);
+            $this->assertCount(1, $this->urls);
+        }
+    }
+
     public function testGetParsedReturnsParsedPage(): void
     {
         $payload = ['data' => ['page_type' => 'product', 'source' => 'schema.org', 'data' => ['price' => 10]]];

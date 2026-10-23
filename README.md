@@ -58,6 +58,21 @@ $html = $su->getPageSource('https://www.nordstrom.com/browse/women/clothing/dres
 ]);
 ```
 
+## Markdown for LLMs
+
+Get the rendered page as clean Markdown instead of HTML, ready for an LLM prompt, an agent or a RAG pipeline. Headings, lists, tables, absolute links and images with their alt text are kept; scripts, styles, navigation, footers and forms are dropped. Billed like an HTML call.
+
+```php
+$md = $su->getMarkdown('https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html');
+echo $md; // "# A Light in the Attic\n\n£51.77\n..."
+
+// Only the main content by default (no navigation, site header, footer or sidebars).
+// Pass 'main_content_only' => false to convert the whole page:
+$full = $su->getMarkdown('https://example.com', ['main_content_only' => false]);
+```
+
+`getMarkdown()` takes the same `proxy_country`, `time_sleep`, `method` / `value` / `method_timeout` and `steps` options as `getPageSource()`. More in the [Markdown guide](https://docs.scrapeunblocker.com/guides/markdown?utm_source=packagist&utm_medium=integration&utm_campaign=php-sdk).
+
 ## Browser steps
 
 Drive the page in the real browser after it loads - fill a search box, click a
@@ -322,7 +337,7 @@ try {
 | `NotFoundException` | 404 | What you asked for does not exist - a plugin lookup found nothing |
 | `TargetNotFoundException` | 404 / 410 | The target page itself does not exist; carries `originStatus`, `html`, `destinationUrl` (subclass of `NotFoundException`, billed) |
 | `BrowserTimeoutException` | 408 | Our browser run timed out before the page was ready |
-| `UnsupportedContentException` | 415 | The URL serves something other than HTML (`getPageSource`) or other than an image (`getImage`) |
+| `UnsupportedContentException` | 415 | The URL serves something other than HTML (`getPageSource`, `getMarkdown`) or other than an image (`getImage`) |
 | `ValidationException` | 422 | Missing or wrong-typed parameter; `$body` holds the `detail` array |
 | `RateLimitException` | 429 | Too many requests |
 | `UpstreamOutageException` | 503 | The target origin is down |
@@ -347,7 +362,7 @@ try {
 
 `TargetNotFoundException` extends `NotFoundException`, so `catch (NotFoundException $e)` catches it too. A 404 without `X-Origin-Status` is the API's own and stays a plain `NotFoundException`.
 
-With `getParsed()` the body is the parsed-data JSON (`{"data": {"page_type": "not_found", ...}}`), so `html` is `null` there; the raw JSON is on `->body`.
+With `getParsed()` the body is the parsed-data JSON (`{"data": {"page_type": "not_found", ...}}`), so `html` is `null` there; the raw JSON is on `->body`. With `getMarkdown()` the not-found page on `->html` is Markdown.
 
 ### No structured data on the page
 
