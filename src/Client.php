@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.14.0';
+    private const VERSION = '0.14.1';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -235,7 +235,10 @@ final class Client
         return PageResult::fromArray($this->decodeJson($body));
     }
 
-    /** Run a Google search and return the parsed SERP as an array. */
+    /**
+     * Run a Google search and return the parsed SERP as an array.
+     * The 'captcha_pause' option is kept for compatibility; the API ignores it.
+     */
     public function serp(string $keyword, array $options = []): array
     {
         return $this->postJson('/serpApi', [

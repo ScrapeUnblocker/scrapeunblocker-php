@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.1 (2026-10-25)
+
+- `serp()` option `captcha_pause` docs: the API ignores it; the option is kept for compatibility. CAPTCHAs are handled server-side by retrying from other exits.
+
 ## 0.14.0 (2026-10-23)
 
 - 16 new plugin methods on `Client`:
