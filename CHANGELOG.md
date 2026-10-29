@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.0 (2026-10-29)
+
+- Add `mapsReviews`: Google Maps reviews of a place in Google's sort orders (relevant, newest, highest, lowest) with exact ISO dates, original and translated text, authors, photos, owner replies and page tokens. `POST /maps/reviews`.
+
 ## 0.15.1 (2026-10-29)
 
 - `shopeeProduct` and `shopeeSearch` docs: describe `availability` and `inStock`, sold-out variations (`models[].available`, `tierIndex`), `categories` as the breadcrumb path plus `browseCategories`, `isPixPrice` (Brazilian Pix prices) and the JSON `{"status": "not_found", ...}` answer for a product that does not exist. Signatures are unchanged.
