@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0 (2026-10-30)
+
+- 29 new plugin methods on `Client`:
+  - E-commerce, new sites: `mediamarktSearch(string $query, ...)` and `mediamarktProduct(?string $productId, ...)` (MediaMarkt in ten countries and Saturn), `cdiscountSearch(string $query, ...)` and `cdiscountProduct(?string $sku, ...)`, `idealoSearch(string $query, ...)` and `idealoOffers(?string $productId, ...)` (price comparison in six countries), `rakutenSearch(?string $query, ...)` and `rakutenProduct(array $options = [])` (Rakuten Ichiba, Japan), `indiamartSearch(?string $query, ...)` and `indiamartProduct(array $options = [])`, `bedbathandbeyondSearch(?string $query, ...)` and `bedbathandbeyondProduct(string $product, ...)`, `petcoSearch(?string $query, ...)` and `petcoProduct(string $product, ...)`, `neobitsProduct(string $product, ...)`, `lowesSearch(?string $query, ...)` and `lowesProduct(?string $productId, ...)`, `menardsSearch(string $query, ...)` and `menardsProduct(array $options = [])`, `graingerSearch(?string $query, ...)` and `graingerProduct(?string $sku, ...)`.
+  - Product pages next to existing searches: `walmartProduct(array $options = [])`, `ebayProduct(array $options = [])`, `etsyProduct(array $options = [])`, `bestbuyProduct(?string $sku, ...)`, `targetCategory(string $category, ...)` and `targetProduct(?string $tcin, ...)`, `aliexpressProduct(?string $productId, ...)`.
+  - AI: `chatgpt(string $prompt, ...)` (ChatGPT's answer with the sites it cites).
+- The nullable first arguments are for calls that pass the `url` option instead, e.g. `lowesProduct(null, ['url' => ...])`. `rakutenProduct`, `indiamartProduct`, `menardsProduct`, `walmartProduct`, `ebayProduct` and `etsyProduct` take the id (`product_id`, `sku`, `item_id`, `listing_id`) or `url` as an option.
+- Plugin doc comments no longer describe exit or proxy details (`exitProvider`); API responses no longer carry them.
+
+No breaking changes.
+
 ## 0.16.0 (2026-10-29)
 
 - Add `mapsReviews`: Google Maps reviews of a place in Google's sort orders (relevant, newest, highest, lowest) with exact ISO dates, original and translated text, authors, photos, owner replies and page tokens. `POST /maps/reviews`.

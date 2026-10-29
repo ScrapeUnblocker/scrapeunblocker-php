@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.16.0';
+    private const VERSION = '0.17.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
