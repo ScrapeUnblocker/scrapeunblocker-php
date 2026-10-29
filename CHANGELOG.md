@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.1 (2026-10-29)
+
+- `shopeeProduct` and `shopeeSearch` docs: describe `availability` and `inStock`, sold-out variations (`models[].available`, `tierIndex`), `categories` as the breadcrumb path plus `browseCategories`, `isPixPrice` (Brazilian Pix prices) and the JSON `{"status": "not_found", ...}` answer for a product that does not exist. Signatures are unchanged.
+
 ## 0.15.0 (2026-10-29)
 
 - 23 new plugin methods on `Client`:
