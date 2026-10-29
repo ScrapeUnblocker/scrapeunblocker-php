@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.15.0 (2026-10-29)
+
+- 23 new plugin methods on `Client`:
+  - Groceries: `krogerSearch(string $query, array $options = [])` and `krogerProduct(string $product, ...)` (Kroger and its 18 banner stores such as Ralphs and Fred Meyer, priced for one store), `instacartSearch(string $query, ...)` and `instacartProduct(string $product, ...)` (any retailer on Instacart, priced for a ZIP code), `publixSearch(string $query, ...)` and `publixProduct(string $product, ...)`.
+  - E-commerce: `amazonOffers(array $options = [])` (every seller's offer for a product, by the `asin` or `url` option), `amazonSeller(array $options = [])` (a seller's public profile and feedback, by the `seller_id` or `url` option), `costcoSearch(string $query, ...)` and `costcoProduct(string $product, ...)`, `flipkartSearch(string $query, ...)` and `flipkartProduct(?string $productId, ...)`, `lazadaSearch(string $query, ...)` and `lazadaProduct(?string $itemId, ...)` (six markets, `country` option), `allegroSearch(string $query, ...)` and `allegroProduct(?string $offerId, ...)`, `falabellaSearch(?string $query, ...)` and `falabellaProduct(array $options = [])` (Chile, Colombia and Peru), `magazineluizaSearch(?string $query, ...)` and `magazineluizaProduct(array $options = [])`.
+  - Google: `googleAiMode(string $q, ...)` (the AI Mode answer with the pages it cites) and `googleLens(string $url, ...)` (Google Lens visual matches for an image URL).
+  - AI: `gemini(string $prompt, ...)` (Google Gemini's answer with its citations and sources).
+- The first argument of `flipkartProduct`, `lazadaProduct`, `allegroProduct`, `falabellaSearch` and `magazineluizaSearch` is nullable, for calls that pass the `url` option instead: `allegroProduct(null, ['url' => ...])`. `falabellaProduct` and `magazineluizaProduct` take the `product_id` or `url` option.
+- `instacartSearch` needs the `retailer` option (the retailer's Instacart slug, e.g. `'costco'`); the API answers 400 without it. `instacartProduct` takes it too, unless `$product` is a link that names the retailer.
+- `sheinSearch` docs: results also carry `reviewCountText`, and the price filters apply to `price`.
+
+No breaking changes.
+
 ## 0.14.1 (2026-10-25)
 
 - `serp()` option `captcha_pause` docs: the API ignores it; the option is kept for compatibility. CAPTCHAs are handled server-side by retrying from other exits.

@@ -125,6 +125,110 @@ trait PluginsTrait
     }
 
     /**
+     * Scrape every offer (all sellers) for an Amazon product.
+     *
+     * Returns the offers Amazon lists for a product under "All buying options", as JSON. Each
+     * offer has the seller (`sellerName`, `sellerId`, `sellerUrl`, `sellerRating`,
+     * `sellerRatingCount`, `sellerPositivePercent`), `price` + `currency`, `listPrice` and
+     * `savingsPercent`, `shippingPrice` and `totalPrice`, `condition` (as Amazon words it) with
+     * `conditionType` (new, used, collectible, refurbished) and the seller's `conditionNote`,
+     * `delivery` / `deliveryDate`, `alternativeDelivery` (the faster or Prime-member option Amazon
+     * also offers), `shipsFrom`, `soldByAmazon`, `fulfilledByAmazon`, `prime`, the `offerId` and a
+     * `buyBoxWinner` flag. The response also carries the product `title`, `rating`, `reviewCount`,
+     * `image` and `totalOffers`. Page 1 starts with the Buy Box (featured) offer, also returned as
+     * `buyBox`; Amazon shows it whatever filter is set. Amazon lists 10 other offers per page:
+     * follow `nextPage`, or read up to 5 pages in one call with `pages`. Filter with `condition`,
+     * `free_shipping` and `prime`. `shippingPrice` is 0 for free delivery and null when Amazon
+     * shows no delivery promise for the location. `proxy_country` defaults to the marketplace's
+     * home country so prices and delivery are the ones a local shopper sees; the proxy that served
+     * the request is reported as `exitCountry` and `exitProvider`.
+     *
+     * @param array{asin?: string, url?: string, marketplace?: string, condition?: string, free_shipping?: bool, prime?: bool, page?: int, pages?: int, proxy_country?: string} $options
+     *   - asin: Amazon product id (10-char ASIN, e.g. 'B07VGRJDFY'; books use their ISBN-10). Give
+     * either `asin` (with `marketplace`) or a product `url`.
+     *   - url: Full Amazon product url, e.g. 'https://www.amazon.de/dp/1847941834'. The ASIN and
+     * marketplace are read from it.
+     *   - marketplace: Regional Amazon site whose offers to list. Prices, sellers and delivery
+     * differ per marketplace. One of: amazon.com, amazon.co.uk, amazon.de, amazon.fr, amazon.it,
+     * amazon.es, amazon.nl, amazon.se, amazon.pl, amazon.com.be, amazon.com.tr, amazon.ca,
+     * amazon.com.mx, amazon.com.br, amazon.co.jp, amazon.in, amazon.ae, amazon.sa, amazon.sg,
+     * amazon.com.au. API default: amazon.com.
+     *   - condition: Only offers in this condition: all, new, used, used_like_new, used_very_good,
+     * used_good, used_acceptable. Default 'all'. API default: all.
+     *   - free_shipping: Only offers with free delivery. API default: false.
+     *   - prime: Only Prime-eligible offers. API default: false.
+     *   - page: 1-based offers page to start at. Amazon lists 10 offers per page (page 1 also
+     * carries the Buy Box offer and the product header). API default: 1.
+     *   - pages: How many consecutive pages to read in this call (1-5). Reading stops early at the
+     * last page. Each page delivered is billed as one request. API default: 1.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE'). Defaults
+     * to the marketplace's home country, so prices, shipping costs and delivery dates are the ones
+     * a local shopper sees.
+     * @return array<mixed>
+     * Calls POST /marketplace/amazon-offers.
+     */
+    public function amazonOffers(array $options = []): array
+    {
+        return $this->postJson('/marketplace/amazon-offers', [
+            'asin' => $options['asin'] ?? null,
+            'url' => $options['url'] ?? null,
+            'marketplace' => $options['marketplace'] ?? null,
+            'condition' => $options['condition'] ?? null,
+            'free_shipping' => $options['free_shipping'] ?? null,
+            'prime' => $options['prime'] ?? null,
+            'page' => $options['page'] ?? null,
+            'pages' => $options['pages'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape an Amazon seller profile.
+     *
+     * Returns an Amazon third-party seller's public profile as JSON: `name`, `logo`,
+     * `storefrontUrl`, the headline `rating`, `ratingCount` and `positivePercent` Amazon shows
+     * (the last 12 months, or lifetime for a seller with few recent ratings; `ratingPeriod` says
+     * which), and `feedbackSummary` for `30d`, `90d`, `12m` and `lifetime` - each with the average
+     * `rating`, `ratingCount`, `positivePercent` / `neutralPercent` / `negativePercent` (4-5, 3
+     * and 1-2 stars), the matching counts and the 5..1-star histogram. Also `about` (the seller's
+     * own description), `businessName`, `businessAddress` (+ `businessAddressLines`),
+     * `businessDetails` (every row of Amazon's "Detailed Seller Information", e.g. business type,
+     * trade register and VAT number where the marketplace shows them), `contactUrl` and
+     * `recentFeedback` (each with `rating`, `text`, `author`, `date`, `struckThrough` and
+     * `amazonMessage` when Amazon took responsibility for the order). Identify the seller with
+     * `seller_id` (plus `marketplace`), e.g. the `sellerId` of an offer from `/marketplace/amazon-
+     * offers`, or with any Amazon `url` naming the seller. Ratings are per marketplace. Amazon's
+     * own retail sellers show no ratings; those fields are null.
+     *
+     * @param array{seller_id?: string, url?: string, marketplace?: string, proxy_country?: string} $options
+     *   - seller_id: Amazon seller (merchant) id, e.g. 'A3PEV2IAOYFKM6' - the `sellerId` of an
+     * offer from /marketplace/amazon-offers. Give either `seller_id` (with `marketplace`) or a
+     * `url`.
+     *   - url: Any Amazon url that names the seller: the profile
+     * ('https://www.amazon.de/sp?seller=A1J6G6R957S11K'), a storefront ('/s?me=...') or a sold-by
+     * link. The seller id and marketplace are read from it.
+     *   - marketplace: Regional Amazon site the seller sells on. Ratings and feedback are per
+     * marketplace. One of: amazon.com, amazon.co.uk, amazon.de, amazon.fr, amazon.it, amazon.es,
+     * amazon.nl, amazon.se, amazon.pl, amazon.com.be, amazon.com.tr, amazon.ca, amazon.com.mx,
+     * amazon.com.br, amazon.co.jp, amazon.in, amazon.ae, amazon.sa, amazon.sg, amazon.com.au. API
+     * default: amazon.com.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE').
+     * Optional: a seller profile is the same from every country, so by default any country is
+     * used.
+     * @return array<mixed>
+     * Calls POST /marketplace/amazon-seller.
+     */
+    public function amazonSeller(array $options = []): array
+    {
+        return $this->postJson('/marketplace/amazon-seller', [
+            'seller_id' => $options['seller_id'] ?? null,
+            'url' => $options['url'] ?? null,
+            'marketplace' => $options['marketplace'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
      * Scrape Walmart product search.
      *
      * Searches Walmart for `query` and returns the products as JSON: `name`, `price` and
@@ -259,6 +363,82 @@ trait PluginsTrait
     }
 
     /**
+     * Scrape Costco product search.
+     *
+     * Searches Costco (costco.com, or costco.ca with `domain=ca`) for `query` and returns
+     * `products`: `productId`, `itemNumber`, `title`, `brand`, `url`, `image`, `price` (and
+     * `priceMax` for a price range), `wasPrice`, `currency`, `promotions`, `marketingStatement`,
+     * `rating`, `reviewCount`, `memberOnly`, `onlineOnly`, `warehouseOnly`, `badges`,
+     * `availability`, `inWarehouse`, `shipIt`, `buyableOnline`, `priceShownInCartOnly`, `model`,
+     * `features`, `category`, `categoryPath` and `variantCount`, plus `totalResults`. A keyword
+     * Costco sends to a category page (e.g. 'tv') returns that category, named in `redirectedTo`.
+     * `availability` is for the delivery location in `deliveryLocation`. Sort with `sort`, start
+     * at `page` and collect up to `max_results`.
+     *
+     * @param string $query What to search for, e.g. 'paper towels', 'kirkland coffee' or 'tv'.
+     * @param array{sort?: string, page?: int, max_results?: int, include_out_of_stock?: bool, domain?: string, proxy_country?: string} $options
+     *   - sort: Result order: relevance, price_low, price_high, rating, newest, brand. API
+     * default: relevance.
+     *   - page: 1-based results page to start from (24 products per page, as on costco.com). API
+     * default: 1.
+     *   - max_results: Products to collect from `page` on, 1-240. Up to 120 are billed as one
+     * request. API default: 24.
+     *   - include_out_of_stock: Also return products that are out of stock (Costco hides them by
+     * default). API default: false.
+     *   - domain: Costco storefront: com, ca ('com' is costco.com, 'ca' is costco.ca). API
+     * default: com.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US'). Leave blank to
+     * let the API pick. Costco computes `availability` for the delivery location it derives from
+     * the visitor; it is named in `deliveryLocation`.
+     * @return array<mixed>
+     * Calls POST /marketplace/costco-search.
+     */
+    public function costcoSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/marketplace/costco-search', [
+            'query' => $query,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'include_out_of_stock' => $options['include_out_of_stock'] ?? null,
+            'domain' => $options['domain'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a Costco product.
+     *
+     * Returns one Costco product (costco.com, or costco.ca with `domain=ca`) as JSON: `productId`,
+     * `itemNumber`, `title`, `brand`, `url`, `price`, `discount`, `currency`, `rating`,
+     * `reviewCount`, `memberOnly`, `onlineOnly`, `buyable`, `inWarehouse`, `shipIt`,
+     * `description`, `details`, `features`, `marketingStatement`, `promotionalStatement`,
+     * `shipping`, `manufacturer`, `manufacturerPartNumber`, `upc`, `minQuantity`, `maxQuantity`,
+     * `categoryPath`, `specifications`, `images`, `options` (e.g. every color and size) and
+     * `variants` (item number, option values, UPC). `product` takes a product id, an item number
+     * or a product link.
+     *
+     * @param string $product A Costco product id ('100361434'), item number ('17767') or product
+     * link (https://www.costco.com/p/-/kirkland-signature-colombian-coffee-dark-
+     * roast-3-lbs/100361434).
+     * @param array{domain?: string, proxy_country?: string} $options
+     *   - domain: Costco storefront: com, ca ('com' is costco.com, 'ca' is costco.ca). Defaults to
+     * the link's storefront, else 'com'.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US'). Leave blank to
+     * let the API pick.
+     * @return array<mixed>
+     * Calls POST /marketplace/costco-product.
+     */
+    public function costcoProduct(string $product, array $options = []): array
+    {
+        return $this->postJson('/marketplace/costco-product', [
+            'product' => $product,
+            'domain' => $options['domain'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
      * Scrape Etsy product search.
      *
      * Searches Etsy for `query` and returns the products as JSON: `title`, `price` + `currency`
@@ -301,9 +481,9 @@ trait PluginsTrait
      *
      * Searches SHEIN (US store) for `query` and returns the products as JSON: `id`, `sku`,
      * `title`, `url`, `price`, `originalPrice`, `currency`, `discountPercent`, `rating`,
-     * `reviewCount`, `category`, `image`, `soldOut` and `storeCode`. Order with `sort`, filter
-     * with `min_price`/`max_price`. Returns SHEIN's first results page (up to 20 products); SHEIN
-     * does not serve deeper pages to automated clients.
+     * `reviewCount`, `reviewCountText`, `category`, `image`, `soldOut` and `storeCode`. Order with
+     * `sort`, filter with `min_price`/`max_price` (enforced on `price`). Returns SHEIN's first
+     * results page (up to 20 products); SHEIN does not serve deeper pages to automated clients.
      *
      * @param string $query What to search, e.g. 'summer dress' or 'phone case'.
      * @param array{sort?: string, min_price?: int, max_price?: int, max_results?: int, page?: int, proxy_country?: string} $options
@@ -884,6 +1064,379 @@ trait PluginsTrait
     }
 
     /**
+     * Scrape Flipkart product search.
+     *
+     * Searches Flipkart (India) for `query` and returns `products`, each with `productId` (the
+     * FSN, e.g. MOBHQV9YCUG4ZQZK), `itemId`, `listingId`, `title`, `brand`, `price`,
+     * `originalPrice` (MRP when discounted), `discountPercent`, `currency` (INR), `rating`,
+     * `ratingCount`, `reviewCount`, `assured` (F-Assured), `sponsored`, `badge` (e.g. Bestseller),
+     * `availability` / `inStock`, `keySpecs`, `category`, `image`, `images` and `url`. Also
+     * `total` (results Flipkart reports), `totalPages` and `nextPage`. `sort` orders the results,
+     * `min_price` / `max_price` filter by price, `page` picks the first page and `max_results`
+     * collects across pages. One unit per Flipkart page read.
+     *
+     * @param string $query What to search for, e.g. 'iphone 17' or 'running shoes'.
+     * @param array{sort?: string, page?: int, min_price?: int, max_price?: int, max_results?: int, proxy_country?: string} $options
+     *   - sort: Result order: relevance, popularity, price_asc, price_desc, newest. API default:
+     * relevance.
+     *   - page: First Flipkart results page to read (1-100). API default: 1.
+     *   - min_price: Lowest price in rupees (INR).
+     *   - max_price: Highest price in rupees (INR).
+     *   - max_results: Products to collect across pages, 1-240. A page holds 24 products (40 in
+     * fashion grids); each page is one unit. API default: 24.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE'). Leave
+     * blank to let the API pick.
+     * @return array<mixed>
+     * Calls POST /marketplace/flipkart-search.
+     */
+    public function flipkartSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/marketplace/flipkart-search', [
+            'query' => $query,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'min_price' => $options['min_price'] ?? null,
+            'max_price' => $options['max_price'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a Flipkart product.
+     *
+     * Returns one Flipkart (India) product by `product_id` (FSN or `itm` id) or `url`:
+     * `productId`, `itemId`, `listingId`, `title`, `brand`, `description`, `category`,
+     * `breadcrumbs`, `price`, `originalPrice` (MRP), `discountPercent`, `bestPrice` (with bank
+     * offers), `currency`, `availability` / `inStock`, `rating`, `ratingCount`, `reviewCount`,
+     * `ratingBreakdown` (1-5 stars), `aspectRatings` (e.g. Camera, Battery), `assured`,
+     * `selectedAttributes`, `highlights`, `specifications` (group / name / value), `images`,
+     * `variants` (dimension, value, productId, price, available, url), `seller` (name, id, rating,
+     * years on Flipkart), `offerCount`, `offers` (bank and exchange offers), `deliveryDays`,
+     * `cashOnDelivery`, `returnPolicy`, `reviews` (top reviews) and `url`. One unit per call.
+     *
+     * @param string|null $productId Flipkart product id: the FSN (`pid`, e.g. MOBHQV9YCUG4ZQZK) or
+     * the `itm...` id from a product link.
+     * @param array{url?: string, proxy_country?: string} $options
+     *   - url: A Flipkart product link, e.g. https://www.flipkart.com/apple-
+     * iphone-17-black-256-gb/p/itmc61b40459dd98?pid=MOBHQV9YCUG4ZQZK. Used instead of
+     * `product_id`.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE'). Leave
+     * blank to let the API pick.
+     * @return array<mixed>
+     * Calls POST /marketplace/flipkart-product.
+     */
+    public function flipkartProduct(?string $productId = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/flipkart-product', [
+            'product_id' => $productId,
+            'url' => $options['url'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Lazada product search.
+     *
+     * Searches a Lazada market (Singapore, Malaysia, Thailand, Philippines, Vietnam or Indonesia -
+     * `country`) for `query` and returns `products`, each with `position`, `itemId`, `skuId`,
+     * `name`, `price`, `priceText`, `originalPrice` (crossed-out price), `discountPercent`,
+     * `rating`, `reviewCount`, `sold` (units sold, as Lazada rounds it) and `soldText`, `brand`,
+     * `seller` / `sellerId`, `location` (ships from), `inStock`, `lazMall`, `freeShipping`,
+     * `sponsored`, `image` and `url`. Also `total` (results Lazada lets you page through),
+     * `matches` (all matches it reports), `currency` and `nextPage`. `sort` orders the results,
+     * `min_price` / `max_price` filter by price, `page` picks the first page and `max_results`
+     * collects across pages (40 a page). One unit per Lazada page read.
+     *
+     * @param string $query What to search for, e.g. 'iphone case' or 'air fryer'.
+     * @param array{country?: string, sort?: string, page?: int, min_price?: float, max_price?: float, max_results?: int} $options
+     *   - country: Lazada market: 'sg' (lazada.sg), 'my' (lazada.com.my), 'th' (lazada.co.th),
+     * 'ph' (lazada.com.ph), 'vn' (lazada.vn), 'id' (lazada.co.id). Default 'sg'. Prices are in
+     * that market's currency.
+     *   - sort: Result order: relevance, price_asc, price_desc. API default: relevance.
+     *   - page: First Lazada results page to read (1-102). API default: 1.
+     *   - min_price: Lowest price, in the market's currency.
+     *   - max_price: Highest price, in the market's currency.
+     *   - max_results: Products to collect across pages, 1-400. A page holds 40 products; each
+     * page is one unit. API default: 40.
+     * @return array<mixed>
+     * Calls POST /marketplace/lazada-search.
+     */
+    public function lazadaSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/marketplace/lazada-search', [
+            'query' => $query,
+            'country' => $options['country'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'min_price' => $options['min_price'] ?? null,
+            'max_price' => $options['max_price'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a Lazada product.
+     *
+     * Returns one Lazada product by `url`, or by `item_id` (+ optional `sku_id`) and `country`:
+     * `itemId`, `skuId`, `title`, `brand`, `description`, `highlights`, `categories`, `price`,
+     * `priceText`, `originalPrice`, `discountPercent`, `currency`, `rating`, `reviewCount`,
+     * `ratingBreakdown` (1-5 stars), `inStock`, `maxQuantity`, `images`, `specifications`,
+     * `variantDimensions` (e.g. colour and storage with their values), `variants` (every SKU with
+     * its attributes, price, image, availability and link), `seller` (id, shop id, name, positive
+     * rating, store highlights, link), `delivery` (option and estimate), `warranties` and `url`.
+     * One unit per call.
+     *
+     * @param string|null $itemId Lazada item id (the number after '-i' in a product link, e.g.
+     * 13907853520).
+     * @param array{url?: string, sku_id?: string, country?: string} $options
+     *   - url: A Lazada product link, e.g. https://www.lazada.sg/products/apple-iphone-18-pro-
+     * max-i13907853520-s124925162667.html. Used instead of `item_id` / `country`.
+     *   - sku_id: Optional SKU id (the number after '-s') to select one variant.
+     *   - country: Lazada market: 'sg' (lazada.sg), 'my' (lazada.com.my), 'th' (lazada.co.th),
+     * 'ph' (lazada.com.ph), 'vn' (lazada.vn), 'id' (lazada.co.id). Default 'sg'. Prices are in
+     * that market's currency.
+     * @return array<mixed>
+     * Calls POST /marketplace/lazada-product.
+     */
+    public function lazadaProduct(?string $itemId = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/lazada-product', [
+            'item_id' => $itemId,
+            'url' => $options['url'] ?? null,
+            'sku_id' => $options['sku_id'] ?? null,
+            'country' => $options['country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Allegro search.
+     *
+     * Searches Allegro (Poland) for `query` and returns `products` (offers), each with `position`,
+     * `offerId`, `productId`, `title`, `price`, `currency` (PLN), `priceWithDelivery`,
+     * `deliveryFrom`, `freeDelivery`, `smart` (Allegro Smart!), `deliveryLabel`, `rating`,
+     * `ratingCount`, `recentBuyers` (bought in the last 30 days), `offersOfProduct`, `quantity`,
+     * `sponsored`, `promoted`, `superSeller`, `seller` (id, login, company, positive feedback %),
+     * `parameters`, `image`, `images` and `url`. Also `total` (all matches), `available` (offers
+     * Allegro lets you page through), `lastPage`, `category` and `nextPage`. Filter with
+     * `min_price` / `max_price`, `condition`, `shipping_from`, `delivery_time`, `offer_type`,
+     * `store_city` and `store_region`; `sort` orders the results; `page` and `max_results` page
+     * through them. One unit per Allegro page read.
+     *
+     * @param string $query What to search for, e.g. 'iphone 15' or 'lego'.
+     * @param array{sort?: string, page?: int, min_price?: float, max_price?: float, condition?: string, shipping_from?: string, delivery_time?: string, offer_type?: string, store_city?: string, store_region?: string, max_results?: int, proxy_country?: string} $options
+     *   - sort: Result order: relevance, price_asc, price_desc, price_with_delivery_asc,
+     * price_with_delivery_desc, popularity, ending_soon, newest, rating. API default: relevance.
+     *   - page: First Allegro results page to read (1-100). API default: 1.
+     *   - min_price: Lowest price in zloty (PLN).
+     *   - max_price: Highest price in zloty (PLN).
+     *   - condition: Item condition: new, like_new, refurbished, used, damaged.
+     *   - shipping_from: Where the item ships from: pl, cz, sk, hu, cn, eu, allegro_warehouse.
+     *   - delivery_time: Delivery speed: one_day, two_days, three_days (one_day = tomorrow).
+     *   - offer_type: Offer type: buy_now, auction (buy_now = fixed price).
+     *   - store_city: The seller's town, e.g. 'Kraków'.
+     *   - store_region: The seller's voivodeship, e.g. 'mazowieckie' or 'slaskie' (or its number
+     * 1-16).
+     *   - max_results: Offers to collect across pages, 1-300. A page holds about 60 offers; each
+     * page is one unit. API default: 60.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'DE', 'CZ'). Leave
+     * blank to let the API pick (recommended: Allegro refuses some countries' exits).
+     * @return array<mixed>
+     * Calls POST /marketplace/allegro-search.
+     */
+    public function allegroSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/marketplace/allegro-search', [
+            'query' => $query,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'min_price' => $options['min_price'] ?? null,
+            'max_price' => $options['max_price'] ?? null,
+            'condition' => $options['condition'] ?? null,
+            'shipping_from' => $options['shipping_from'] ?? null,
+            'delivery_time' => $options['delivery_time'] ?? null,
+            'offer_type' => $options['offer_type'] ?? null,
+            'store_city' => $options['store_city'] ?? null,
+            'store_region' => $options['store_region'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape an Allegro offer.
+     *
+     * Returns one Allegro (Poland) offer by `offer_id` or `url`: `offerId`, `productId`, `title`,
+     * `productName`, `brand`, `gtin`, `price`, `originalPrice`, `currency`, `sellingMode` (buy_now
+     * / auction), `available` (stock), `condition`, `rating`, `ratingCount`, `ratingBreakdown`
+     * (1-5 stars), `recentBuyers`, `category`, `breadcrumbs`, `parameters` (group / name / value),
+     * `description`, `images`, `variants`, `seller` (id, login, Super Seller, feedback, company
+     * name and tax id), `location`, `smart`, `delivery`, `shippingMethods` (name, price, Smart!
+     * price), `returnDays`, `warranty`, `endsAt`, `reviews` and `url`. One unit per call.
+     *
+     * @param string|null $offerId Allegro offer number, e.g. 16680923539 (the number at the end of
+     * an /oferta/ link or its offerId).
+     * @param array{url?: string, proxy_country?: string} $options
+     *   - url: An Allegro offer or product link, e.g. https://allegro.pl/oferta/16680923539 or
+     * https://allegro.pl/produkt/...?offerId=16680923539. Used instead of `offer_id`.
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'DE', 'CZ'). Leave
+     * blank to let the API pick (recommended: Allegro refuses some countries' exits).
+     * @return array<mixed>
+     * Calls POST /marketplace/allegro-product.
+     */
+    public function allegroProduct(?string $offerId = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/allegro-product', [
+            'offer_id' => $offerId,
+            'url' => $options['url'] ?? null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Falabella product search (Chile, Colombia, Peru).
+     *
+     * Searches a Falabella store (`country`: cl, co or pe) for `query` and returns the products as
+     * JSON: `productId`, `skuId`, `title`, `brand`, `url`, `price` (and `priceMax` for a price
+     * range), `cmrPrice` (price with the Falabella CMR card), `originalPrice` (crossed-out list
+     * price), `discountPercent`, `currency`, `rating`, `reviewCount`, `sellerId` / `sellerName`,
+     * `sponsored`, `bestSeller`, `freeShipping`, `deliveryLabels`, `badges`,
+     * `installmentsWithoutInterest`, `image` / `images`, `topSpecifications` and `variants`
+     * (colour / size options). Sort with `sort`, start at `page`, and collect up to `max_results`
+     * across pages (48 per page, each page billed as one request, see `pagesFetched`). `url` takes
+     * a Falabella search link instead of `query`.
+     *
+     * @param string|null $query What to search, e.g. 'zapatillas nike', 'televisor 55' or
+     * 'notebook'.
+     * @param array{country?: string, sort?: string, page?: int, max_results?: int, url?: string} $options
+     *   - country: Falabella store: 'cl' (www.falabella.com, prices in CLP), 'co'
+     * (www.falabella.com.co, prices in COP), 'pe' (www.falabella.com.pe, prices in PEN). Default
+     * 'cl'.
+     *   - sort: Order: relevance, price_low, price_high, rating, brand. API default: relevance.
+     *   - page: 1-based results page to start from (1-200). API default: 1.
+     *   - max_results: Products to collect across pages (1-480); Falabella serves 48 per page and
+     * each page fetched is billed as one request. API default: 48.
+     *   - url: Instead of `query`: a Falabella search link, e.g.
+     * https://www.falabella.com/falabella-cl/search?Ntt=zapatillas (its store, sort and page are
+     * used).
+     * @return array<mixed>
+     * Calls POST /marketplace/falabella-search.
+     */
+    public function falabellaSearch(?string $query = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/falabella-search', [
+            'query' => $query,
+            'country' => $options['country'] ?? null,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'url' => $options['url'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Falabella product's full detail.
+     *
+     * Fetches one Falabella product (by `product_id` + `country`, or `url`) and returns it as
+     * JSON: `productId`, `skuId`, `url`, `title`, `brand`, `description` / `longDescription`,
+     * `price` / `priceMax`, `cmrPrice`, `originalPrice`, `discountPercent`, `currency`,
+     * `available`, `stockUnits` (only when Falabella shows a low-stock count), `rating`,
+     * `reviewCount`, `sellerId` / `sellerName`, `freeShipping`, `deliveryLabels`, `badges`,
+     * `installmentsWithoutInterest`, `breadcrumbs`, `topSpecifications`, `specifications` (name /
+     * value), `images`, `videos`, `returnPolicy` and `variants` (every colour / size SKU with its
+     * own price, availability, delivery options and images). The top-level price fields are those
+     * of `sku` (default the main variant). Companion to `/marketplace/falabella-search`.
+     *
+     * @param array{product_id?: string, url?: string, sku?: string, country?: string} $options
+     *   - product_id: Falabella product id, e.g. '17776888' or 'prod11930024' (the part after
+     * /product/ in a product link). Needs `country` unless it is 'cl'.
+     *   - url: Instead of `product_id`: a Falabella product link, e.g.
+     * https://www.falabella.com/falabella-cl/product/17776888/iphone-duo-256gb-night-sky/17776887
+     * (its store and SKU are used).
+     *   - sku: Variant (SKU) whose price and availability fill the top-level fields; default the
+     * product's main variant. Every variant is listed in `variants` either way.
+     *   - country: With `product_id`: Falabella store: 'cl' (www.falabella.com, prices in CLP),
+     * 'co' (www.falabella.com.co, prices in COP), 'pe' (www.falabella.com.pe, prices in PEN).
+     * Default 'cl'.
+     * @return array<mixed>
+     * Calls POST /marketplace/falabella-product.
+     */
+    public function falabellaProduct(array $options = []): array
+    {
+        return $this->postJson('/marketplace/falabella-product', [
+            'product_id' => $options['product_id'] ?? null,
+            'url' => $options['url'] ?? null,
+            'sku' => $options['sku'] ?? null,
+            'country' => $options['country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Magazine Luiza (Magalu) product search.
+     *
+     * Searches Magazine Luiza (magazineluiza.com.br, Brazil) for `query` and returns the products
+     * as JSON: `productId`, `offerId`, `title`, `brand`, `url`, `price`, `bestPrice` with
+     * `bestPriceMethod` (usually the Pix price), `originalPrice` (list price), `discountPercent`,
+     * `currency` (BRL), `installments` (count, amount, interest-free), `rating`, `reviewCount`,
+     * `sellerId` / `sellerName`, `available`, `sponsored`, `magaluIndica`, `category` /
+     * `subcategory`, `badges`, `image` and `variations`. Sort with `sort`, start at `page`, and
+     * collect up to `max_results` across pages (40 per page, each page billed as one request, see
+     * `pagesFetched`). `url` takes a Magalu search link instead of `query`.
+     *
+     * @param string|null $query What to search, e.g. 'geladeira', 'smart tv 55' or 'air fryer'.
+     * @param array{sort?: string, page?: int, max_results?: int, url?: string} $options
+     *   - sort: Order: relevance, price_low, price_high, best_selling, rating, newest,
+     * fastest_delivery, price_with_shipping_low. API default: relevance.
+     *   - page: 1-based results page to start from (1-25). API default: 1.
+     *   - max_results: Products to collect across pages (1-200); Magalu serves 40 per page and
+     * each page fetched is billed as one request. API default: 40.
+     *   - url: Instead of `query`: a Magazine Luiza search link, e.g.
+     * https://www.magazineluiza.com.br/busca/geladeira/ (its sort and page are used).
+     * @return array<mixed>
+     * Calls POST /marketplace/magazineluiza-search.
+     */
+    public function magazineluizaSearch(?string $query = null, array $options = []): array
+    {
+        return $this->postJson('/marketplace/magazineluiza-search', [
+            'query' => $query,
+            'sort' => $options['sort'] ?? null,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+            'url' => $options['url'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape one Magazine Luiza (Magalu) product's full detail.
+     *
+     * Fetches one Magazine Luiza product (by `product_id` or `url`) and returns it as JSON:
+     * `productId`, `offerId`, `url`, `title`, `brand`, `reference`, `description`,
+     * `keySellingPoints`, `price`, `bestPrice` / `bestPriceMethod`, `originalPrice`,
+     * `discountPercent`, `currency` (BRL), `installments`, `available`, `rating`, `reviewCount`,
+     * `commentCount`, `ratingHistogram`, `ratingAspects`, `reviews` (first page: rating, text,
+     * author, date, photos), `seller` (id, name, legal name, city / state, seller since, score,
+     * total sales, answer and delivery rate), `coupon`, `badges`, `breadcrumbs`, `specifications`
+     * (group / name / value), `variations` (colour, size, capacity... with the product id of each
+     * option), `images`, `videos` and package `dimensions`. Companion to
+     * `/marketplace/magazineluiza-search`.
+     *
+     * @param array{product_id?: string, url?: string} $options
+     *   - product_id: Magalu product id, e.g. '240354400' or 'jc60hbaa6d' (the part after /p/ in a
+     * product link).
+     *   - url: Instead of `product_id`: a Magazine Luiza product link, e.g.
+     * https://www.magazineluiza.com.br/notebook-acer-aspire-go/p/240354400/in/nota/.
+     * @return array<mixed>
+     * Calls POST /marketplace/magazineluiza-product.
+     */
+    public function magazineluizaProduct(array $options = []): array
+    {
+        return $this->postJson('/marketplace/magazineluiza-product', [
+            'product_id' => $options['product_id'] ?? null,
+            'url' => $options['url'] ?? null,
+        ]);
+    }
+
+    /**
      * Scrape Vinted product search.
      *
      * Searches Vinted for `query` and returns the listings as JSON: `title`, `price` and
@@ -1458,6 +2011,251 @@ trait PluginsTrait
             'mode' => "product",
             'product' => $product,
             'proxy_country' => $options['proxy_country'] ?? null,
+        ]);
+    }
+
+    /**
+     * Search Kroger and its banner stores (Ralphs, Fred Meyer, King Soopers, ...).
+     *
+     * Products matching `query` on Kroger or one of its banner sites (`banner`: kroger, ralphs,
+     * fredmeyer, kingsoopers, frysfood, smithsfoodanddrug, qfc, dillons, bakersplus, citymarket,
+     * gerbes, foodfourless, harristeeter, marianos, metromarket, picknsave, jaycfoods, payless,
+     * foodsco), priced for one store. Returns `products` in the site's order with `productId`
+     * (Kroger's 13-digit id), `upc`, `gtin14`, `name`, `brand`, `size`, `url`, `image`, `price`
+     * (what the shopper pays now), `regularPrice`, `salePrice`, `onSale`, `savings`, `promotion`
+     * (`type` sale / price_drop / multibuy / must_buy / bogo, `text`, multibuy `quantity` and
+     * `quantityPrice`, `expiresAt`), `unitPrice` (`price`, `unit`, `text`), `soldBy` (unit /
+     * weight; weighed items carry Kroger's per-item estimate), `available`, `stockLevel` (HIGH /
+     * LOW / TEMPORARILY_OUT_OF_STOCK), `maxOrderQuantity`, `fulfillment` (`pickup`, `delivery`,
+     * `inStore`, `ship`: whether the store offers the product that way), `aisle` (`number`,
+     * `description`, `side`, `bay`, `shelf`), `rating`, `reviewCount`, `categories`,
+     * `snapEligible` and `offers` (extra deals such as 'Save $2 each when you buy 3'), plus
+     * `position` and `sponsored`. `totalResults` is the site's total match count; one call returns
+     * the first page (up to 24 products). `brand` narrows the search to one or more brands.
+     * `store` names the store the prices are for: `storeId`, `name`, `banner`, `address`,
+     * `latitude`, `longitude`, `fulfillmentMethods`, `hours`, `pricesFor` (pickup or inStore) and
+     * `selectedBy` (store_id / zip / default); with `zip`, `nearbyStores` lists the banner's other
+     * stores near it. Prices are in USD and depend on the store. One billed unit per call.
+     *
+     * @param string $query What to search for, e.g. 'milk', 'coca cola', 'gluten free bread'.
+     * @param array{banner?: string, brand?: string, store_id?: string, zip?: string, max_results?: int} $options
+     *   - banner: Which Kroger-family store site to use: 'kroger' (Kroger), 'ralphs' (Ralphs),
+     * 'fredmeyer' (Fred Meyer), 'kingsoopers' (King Soopers), 'frysfood' (Fry's Food),
+     * 'smithsfoodanddrug' (Smith's), 'qfc' (QFC), 'dillons' (Dillons), 'bakersplus' (Baker's),
+     * 'citymarket' (City Market), 'gerbes' (Gerbes), 'foodfourless' (Food 4 Less), 'harristeeter'
+     * (Harris Teeter), 'marianos' (Mariano's), 'metromarket' (Metro Market), 'picknsave' (Pick 'n
+     * Save), 'jaycfoods' (Jay C Food Stores), 'payless' (Pay Less), 'foodsco' (FoodsCo). Host
+     * names (ralphs.com) and common spellings (food4less, smiths, frys) work too. API default:
+     * kroger.
+     *   - brand: Only products of these brands, e.g. 'Kroger' or 'Kroger|Simple Truth' (separate
+     * several with | or ,).
+     *   - store_id: Kroger store id (8 digits, e.g. '01400929'): prices, stock and aisles are that
+     * store's. The id is shown as `store.storeId` in every answer and in `nearbyStores` when you
+     * search by `zip`.
+     *   - zip: US ZIP code: prices for the banner's nearest store to it that takes online orders
+     * (the nearest store at all when none does). The answer lists the nearby stores in
+     * `nearbyStores`. Leave both `store_id` and `zip` blank for the banner's default store.
+     *   - max_results: Products to return, 1-24 (the first page of results). API default: 24.
+     * @return array<mixed>
+     * Calls POST /groceries/kroger-search.
+     */
+    public function krogerSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/groceries/kroger-search', [
+            'query' => $query,
+            'banner' => $options['banner'] ?? null,
+            'brand' => $options['brand'] ?? null,
+            'store_id' => $options['store_id'] ?? null,
+            'zip' => $options['zip'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Kroger product details (Kroger, Ralphs, Fred Meyer, King Soopers, ...).
+     *
+     * One product from Kroger or one of its banner sites, by Kroger product id, UPC / GTIN barcode
+     * or product link, priced for one store. `product` has `productId` (Kroger's 13-digit id),
+     * `upc`, `gtin14`, `name`, `brand`, `size`, `url`, `image`, `price` (what the shopper pays
+     * now), `regularPrice`, `salePrice`, `onSale`, `savings`, `promotion` (`type` sale /
+     * price_drop / multibuy / must_buy / bogo, `text`, multibuy `quantity` and `quantityPrice`,
+     * `expiresAt`), `unitPrice` (`price`, `unit`, `text`), `soldBy` (unit / weight; weighed items
+     * carry Kroger's per-item estimate), `available`, `stockLevel` (HIGH / LOW /
+     * TEMPORARILY_OUT_OF_STOCK), `maxOrderQuantity`, `fulfillment` (`pickup`, `delivery`,
+     * `inStore`, `ship`: whether the store offers the product that way), `aisle` (`number`,
+     * `description`, `side`, `bay`, `shelf`), `rating`, `reviewCount`, `categories`,
+     * `snapEligible` and `offers` (extra deals such as 'Save $2 each when you buy 3'), and the
+     * product page details: `description`, `highlights`, `images` (every angle, large),
+     * `ingredients`, `allergens`, `nutrition` (`servingSize`, `servingsPerContainer`, `nutrients`
+     * with amount, unit and % daily value), `dietary`, `claims`, `organic`, `glutenFree`,
+     * `kosher`, `nonGmo`, `taxonomy` (category paths), `countryOfOrigin`, `storage`, `dimensions`,
+     * `weight`, `ratingBreakdown`, `alcohol` and `ageRestricted`. `store` names the store the
+     * prices are for: `storeId`, `name`, `banner`, `address`, `latitude`, `longitude`,
+     * `fulfillmentMethods`, `hours`, `pricesFor` (pickup or inStore) and `selectedBy` (store_id /
+     * zip / default). One billed unit per call.
+     *
+     * @param string $product The product: Kroger's 13-digit product id ('0001111041700'), a UPC or
+     * GTIN barcode ('011110417005'), or a product link from any banner
+     * (https://www.kroger.com/p/kroger-2-reduced-fat-milk/0001111041700). A link picks its banner
+     * by itself.
+     * @param array{banner?: string, store_id?: string, zip?: string} $options
+     *   - banner: Which Kroger-family store site to use: 'kroger' (Kroger), 'ralphs' (Ralphs),
+     * 'fredmeyer' (Fred Meyer), 'kingsoopers' (King Soopers), 'frysfood' (Fry's Food),
+     * 'smithsfoodanddrug' (Smith's), 'qfc' (QFC), 'dillons' (Dillons), 'bakersplus' (Baker's),
+     * 'citymarket' (City Market), 'gerbes' (Gerbes), 'foodfourless' (Food 4 Less), 'harristeeter'
+     * (Harris Teeter), 'marianos' (Mariano's), 'metromarket' (Metro Market), 'picknsave' (Pick 'n
+     * Save), 'jaycfoods' (Jay C Food Stores), 'payless' (Pay Less), 'foodsco' (FoodsCo). Host
+     * names (ralphs.com) and common spellings (food4less, smiths, frys) work too. Default
+     * 'kroger'.
+     *   - store_id: Kroger store id (8 digits, e.g. '01400929'): prices, stock and aisles are that
+     * store's. The id is shown as `store.storeId` in every answer and in `nearbyStores` when you
+     * search by `zip`.
+     *   - zip: US ZIP code: prices for the banner's nearest store to it that takes online orders
+     * (the nearest store at all when none does). The answer lists the nearby stores in
+     * `nearbyStores`. Leave both `store_id` and `zip` blank for the banner's default store.
+     * @return array<mixed>
+     * Calls POST /groceries/kroger-product.
+     */
+    public function krogerProduct(string $product, array $options = []): array
+    {
+        return $this->postJson('/groceries/kroger-product', [
+            'product' => $product,
+            'banner' => $options['banner'] ?? null,
+            'store_id' => $options['store_id'] ?? null,
+            'zip' => $options['zip'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Instacart product search.
+     *
+     * Searches one retailer's Instacart catalogue (Costco, Aldi, Publix, Safeway, Kroger, CVS,
+     * Sprouts, ... named by `retailer`) for `query` and returns `products` in Instacart's order,
+     * priced at the store Instacart assigns to `zip`: `id` (item id), `productId`, `name`,
+     * `brand`, `size`, `packageSize`, `price`, `priceText`, `wasPrice`, `onSale`, `unitPrice`
+     * (`price`, `per`, `text`), `soldBy` (each / weight), `estimatedWeight`, `promotions` (`text`,
+     * `type`), `available`, `stockLevel`, `rating`, `reviewCount`, `category`, `storeBrand`,
+     * `dietary`, `aisle`, `image` and `url`, plus `store` (the shop, its location id and the ZIP
+     * code used) and `totalResults`. Prices are Instacart's prices in USD, which can differ from
+     * the retailer's in-store prices. Up to `max_results` products, billed one unit per 30.
+     *
+     * @param string $query What to search for, e.g. 'milk', 'greek yogurt', 'paper towels'.
+     * @param array{retailer?: string, zip?: string, max_results?: int} $options
+     *   - retailer: The retailer's Instacart slug: the part after /store/ in an Instacart link,
+     * e.g. 'costco', 'aldi', 'publix', 'safeway', 'kroger', 'cvs', 'sprouts', 'wegmans', 'sams-
+     * club'. An Instacart store link is accepted too.
+     *   - zip: 5-digit US ZIP code of the delivery area. Instacart prices and stock belong to the
+     * store serving it. Default 94105 (San Francisco).
+     *   - max_results: Products to return, 1-300, in Instacart's order. Billed one unit per 30.
+     * API default: 30.
+     * @return array<mixed>
+     * Calls POST /groceries/instacart-search.
+     */
+    public function instacartSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/groceries/instacart-search', [
+            'query' => $query,
+            'retailer' => $options['retailer'] ?? null,
+            'zip' => $options['zip'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape an Instacart product.
+     *
+     * One product of a retailer on Instacart, priced at the store Instacart assigns to `zip`: the
+     * search fields (`id`, `productId`, `name`, `brand`, `size`, `packageSize`, `price`,
+     * `wasPrice`, `onSale`, `unitPrice`, `soldBy`, `promotions`, `available`, `stockLevel`,
+     * `rating`, `reviewCount`, `category`, `dietary`, `aisle`, `image`, `url`) plus `description`,
+     * `ingredients`, `directions`, `warnings`, the product page `sections` and the `images`
+     * gallery, and `store`. `product` is an Instacart product id, an item id from a search result
+     * or a product link. One unit per call.
+     *
+     * @param string $product An Instacart product id ('16902650'), an item id from a search result
+     * ('items_4142-16902650') or a product link (https://www.instacart.com/products/16902650-...).
+     * @param array{retailer?: string, zip?: string} $options
+     *   - retailer: The retailer's Instacart slug: the part after /store/ in an Instacart link,
+     * e.g. 'costco', 'aldi', 'publix', 'safeway', 'kroger', 'cvs', 'sprouts', 'wegmans', 'sams-
+     * club'. An Instacart store link is accepted too. Optional when `product` is a link carrying
+     * `retailerSlug`.
+     *   - zip: 5-digit US ZIP code of the delivery area. Instacart prices and stock belong to the
+     * store serving it. Default 94105 (San Francisco).
+     * @return array<mixed>
+     * Calls POST /groceries/instacart-product.
+     */
+    public function instacartProduct(string $product, array $options = []): array
+    {
+        return $this->postJson('/groceries/instacart-product', [
+            'product' => $product,
+            'retailer' => $options['retailer'] ?? null,
+            'zip' => $options['zip'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape Publix grocery search.
+     *
+     * Searches publix.com (US) for `query` at one store and returns `products`: `productId`,
+     * `itemCode`, `title`, `brand`, `size`, `url`, `image`, `price`, `priceText`, `unit` (e.g.
+     * 'lb' for items sold by weight), `wasPrice`, `currency`, `onSale`, `promotion` (`type` such
+     * as BOGO, `message`, `conditions`, `validThrough`, `savings`), `hasCoupon`, `soldByWeight`,
+     * `aisle`, `category`, `categoryPath` and `storeId`, plus `store` (the store the prices are
+     * for), `totalResults`, `totalPages` and `nextPage`. Publix publishes a price online only
+     * while an item is on promotion, so `price` is null for the rest. A keyword Publix sends to a
+     * category returns that category, named in `redirectedTo`; one it sends to a page that lists
+     * no products (the weekly ad, cake ordering, store locations) answers with no products and
+     * `sentElsewhere` true.
+     *
+     * @param string $query What to search for, e.g. 'milk', 'cheerios' or 'chicken breast'.
+     * @param array{store_id?: string, zip?: string, page?: int, max_results?: int} $options
+     *   - store_id: Publix store number whose prices and promotions to return, e.g. '1614'. Give
+     * this or `zip`; with neither, a store in Lakeland, FL is used. The store used is named in
+     * `store`.
+     *   - zip: US ZIP code; the nearest Publix store is used, e.g. '33801'.
+     *   - page: 1-based results page to start from (48 products per page). API default: 1.
+     *   - max_results: Products to collect from `page` on, 1-480. Each page fetched is billed one
+     * unit. API default: 48.
+     * @return array<mixed>
+     * Calls POST /groceries/publix-search.
+     */
+    public function publixSearch(string $query, array $options = []): array
+    {
+        return $this->postJson('/groceries/publix-search', [
+            'query' => $query,
+            'store_id' => $options['store_id'] ?? null,
+            'zip' => $options['zip'] ?? null,
+            'page' => $options['page'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a Publix product.
+     *
+     * Returns one publix.com (US) product at one store as `product`: the search fields
+     * (`productId`, `itemCode`, `title`, `brand`, `size`, `price`, `wasPrice`, `promotion`,
+     * `aisle` and so on) plus `images`, `description`, `ingredients`, `directions`, `allergens`,
+     * `available`, `categories`, `badges`, `couponCount`, `smartLabelUrl` and `relatedProducts`,
+     * and `store`, the store the price is for. Publix publishes a price online only while an item
+     * is on promotion.
+     *
+     * @param string $product A Publix product id ('RIO-PCI-103438') or product link
+     * (https://www.publix.com/pd/cheerios-cereal-large-size/RIO-PCI-103438).
+     * @param array{store_id?: string, zip?: string} $options
+     *   - store_id: Publix store number whose prices and promotions to return, e.g. '1614'. Give
+     * this or `zip`; with neither, a store in Lakeland, FL is used. The store used is named in
+     * `store`.
+     *   - zip: US ZIP code; the nearest Publix store is used, e.g. '33801'.
+     * @return array<mixed>
+     * Calls POST /groceries/publix-product.
+     */
+    public function publixProduct(string $product, array $options = []): array
+    {
+        return $this->postJson('/groceries/publix-product', [
+            'product' => $product,
+            'store_id' => $options['store_id'] ?? null,
+            'zip' => $options['zip'] ?? null,
         ]);
     }
 
@@ -2345,6 +3143,106 @@ trait PluginsTrait
             'q' => $q,
             'region' => $options['region'] ?? null,
             'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Scrape a Google AI Mode answer.
+     *
+     * Asks Google AI Mode (the `udm=50` AI Mode tab, not the AI Overview on a results page) the
+     * question `q` and returns its full answer as JSON: `answer.text` (plain text),
+     * `answer.markdown` and `answer.blocks` (paragraphs, headings, lists, tables and code, in
+     * order), `references` (the pages the answer cites: `title`, `url`, `domain`, `source`,
+     * `snippet`), `links` (links written into the answer text) and `followUps` (the follow-up
+     * questions Google closes the answer with, if any). Set `proxy_country` to ask from a market -
+     * the Google market (`gl`) follows it - and `hl` for the answer's language. Answers differ
+     * between identical requests, as they do for a person.
+     *
+     * @param string $q The question to ask Google AI Mode, e.g. 'how to learn python fast'.
+     * @param array{proxy_country?: string, gl?: string, hl?: string} $options
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE'). The
+     * Google market (`gl`) follows it unless `gl` is set.
+     *   - gl: Optional Google market override (ISO-2, e.g. 'us', 'de'). Default: `proxy_country`,
+     * else 'us'.
+     *   - hl: Language Google answers in, e.g. 'en', 'de', 'pt-BR'. Default 'en'.
+     * @return array<mixed>
+     * Calls POST /search/google-ai-mode.
+     */
+    public function googleAiMode(string $q, array $options = []): array
+    {
+        return $this->postJson('/search/google-ai-mode', [
+            'q' => $q,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'gl' => $options['gl'] ?? null,
+            'hl' => $options['hl'] ?? null,
+        ]);
+    }
+
+    /**
+     * Search Google Lens with an image URL.
+     *
+     * Runs a Google Lens search for the image at `url` and returns its visual matches as JSON
+     * (usually ~60). Every match carries `title`, `url` (the page the image is on), `domain`,
+     * `source` (site name), `imageUrl` (the matching image), `thumbnailUrl`, `width`, `height` and
+     * `position`; product matches add `price` and `currency` (and `product` details) when Google
+     * has them, and `priceText`, `rating` and `reviews` as the tile shows them. `relatedSearches`
+     * lists what Lens recognised in the image (e.g. 'Eiffel Tower', with its Knowledge Graph id)
+     * and `aiOverview` is Google's own description of the image when it is ready in time (else
+     * null). Shopping matches follow the country the request comes from - set `proxy_country` for
+     * a market (a US request is served from a European exit, where Google loads Lens matches;
+     * `proxyCountry` in the response says which).
+     *
+     * @param string $url Public http(s) URL of the image to search with, e.g. a product photo.
+     * Google fetches the image itself.
+     * @param array{proxy_country?: string, gl?: string, hl?: string, max_results?: int} $options
+     *   - proxy_country: Proxy country the request is sent from (ISO-2, e.g. 'US', 'DE'). Shopping
+     * matches and prices follow the country Google sees the request from.
+     *   - gl: Optional Google market override (ISO-2). Default: `proxy_country`, else 'us'.
+     *   - hl: Google UI language, e.g. 'en', 'de'. Default 'en'.
+     *   - max_results: Optional cap on the visual matches returned (1-100; default: all, usually
+     * ~60).
+     * @return array<mixed>
+     * Calls POST /images/google-lens.
+     */
+    public function googleLens(string $url, array $options = []): array
+    {
+        return $this->postJson('/images/google-lens', [
+            'url' => $url,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'gl' => $options['gl'] ?? null,
+            'hl' => $options['hl'] ?? null,
+            'max_results' => $options['max_results'] ?? null,
+        ]);
+    }
+
+    /**
+     * Ask Google Gemini and get its answer and cited sources.
+     *
+     * Asks Google Gemini (gemini.google.com, signed out) one question and returns `answer` (plain
+     * text) and `answerMarkdown`, `citations` (pages cited inline: `position`, `title`, `url`,
+     * `domain`, `siteName`, `description`, `citedText` - the answer sentences that page backs -
+     * and `firstCitedAt`, the character offset of the first of them), `sources` (pages Gemini
+     * consulted when it searched the web: `position`, `title`, `url`, `domain`), `webSearch`
+     * (whether it searched the web), `followUpPrompts` (`label`, `prompt`), `richBlocks` (cards
+     * Gemini drew that have no text, e.g. a sports score or image strip, left out of the answer),
+     * `model` (the model label the app shows), `location` and `locationCountry` (where Gemini
+     * placed the visitor), `complete` and `conversationId`. `country` asks from that country.
+     * Answers vary between identical calls, as they do for people. One unit per call.
+     *
+     * @param string $prompt The question to ask Gemini, as a user would type it, e.g. 'best CRM
+     * for small business' (max 4000 characters). Each call starts a new conversation.
+     * @param array{country?: string} $options
+     *   - country: Two-letter country code to ask from, e.g. US, GB, DE. Gemini answers for where
+     * it locates the visitor (local results, currency, language defaults); `locationCountry` in
+     * the answer says where it placed this call. Leave blank for any European location.
+     * @return array<mixed>
+     * Calls POST /ai/gemini.
+     */
+    public function gemini(string $prompt, array $options = []): array
+    {
+        return $this->postJson('/ai/gemini', [
+            'prompt' => $prompt,
+            'country' => $options['country'] ?? null,
         ]);
     }
 
