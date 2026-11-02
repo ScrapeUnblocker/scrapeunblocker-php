@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0 (2026-11-02)
+
+- 6 new plugin methods on `Client` for SofaScore (live scores, fixtures, results and stats for 26 sports): `sofascoreEvents(array $options = [])` (a sport's matches on a day in your time zone, or the `live` option for those in progress; `sport` defaults to football), `sofascoreMatch(string $match, ...)` (one match with the `include` sections: statistics, lineups, incidents, head-to-head, odds, momentum, shot map and more), `sofascoreSearch(string $query, ...)`, `sofascoreTeam(string $team, ...)`, `sofascorePlayer(string $player, ...)` and `sofascoreTournament(string $tournament, ...)`. Teams, players and competitions take an id, a sofascore.com link or a name. `include` takes a comma-separated string or an array.
+
+No breaking changes.
+
 ## 0.17.1 (2026-10-30)
 
 - 2 new plugin methods on `Client`: `bodegaaurreraSearch(?string $query, ...)` and `bodegaaurreraProduct(array $options = [])` (Bodega Aurrera, Walmart de Mexico's discount chain; prices in MXN). The product method takes the `product_id` or `url` option.

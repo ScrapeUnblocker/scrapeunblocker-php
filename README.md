@@ -168,6 +168,7 @@ $jobs = $su->careerSiteJobs('https://jobs.ashbyhq.com/ramp', ['keyword' => 'engi
 | Local & Maps | `yelpSearch`, `yelpBusiness`, `yelpReviews`, `naverPlaceSearch`, `naverPlaceDetails` |
 | Apps | `googlePlayApp`, `googlePlaySearch`, `appStoreApp`, `appStoreSearch`, `appStoreReviews` |
 | Video & Music | `youtubeChannel`, `youtubeSearch`, `youtubeTranscript`, `spotifySearch`, `spotifyArtist`, `spotifyAlbum`, `spotifyTrack`, `spotifyPlaylist` |
+| Sports | `sofascoreEvents`, `sofascoreMatch`, `sofascoreSearch`, `sofascoreTeam`, `sofascorePlayer`, `sofascoreTournament` |
 | SEO & Ads | `similarwebOverview`, `ahrefs`, `semrushOverview`, `metaAdLibrary` |
 <!-- plugin-methods:end -->
 
