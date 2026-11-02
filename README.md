@@ -183,6 +183,11 @@ $data = $su->plugin('/marketplace/target-search', ['query' => 'tv', 'max_results
 
 ```php
 $serp = $su->serp('web scraping api', ['pages_to_check' => 2, 'proxy_country' => 'US']);
+foreach ($serp['organic'] as $r) {
+    echo $r['position'], ' ', $r['title'], ' ', $r['url'], ' ', $r['date'], "\n";
+}
+// The first page's other blocks (empty when Google shows none):
+print_r([$serp['peopleAlsoAsk'], $serp['relatedSearches'], $serp['knowledgeGraph'], $serp['topStories']]);
 ```
 
 ## Google Local (Maps)
