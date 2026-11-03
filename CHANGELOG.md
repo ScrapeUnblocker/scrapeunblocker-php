@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.3 (2026-11-03)
+
+- `crunchbaseCompany()` documents the fields the API now fills from the company's own homepage when Crunchbase leaves them empty: `seoDescription`, `coverImage`, `employeeCount`, `linkedinId`, `headquarters.street` / `postalCode`, the `instagram`, `youtube` and `github` social links, and `fromWebsite` naming the keys that came from the homepage.
+- `metaAdLibrary()` documents the full ad record: `ad_library_url`, `collation_count`, `contains_sensitive_content`, `contains_digital_created_media`, `total_active_time`, `impressions`, `spend`, `targeted_or_reached_countries`, the Page's `page_profile_picture_url`, `page_categories` and `page_is_deleted`, `images`, `videos`, `cards`, `extra_texts`, `extra_links`, and the echoed `query` and `search_url`; `country` accepts `ALL`.
+- `wellfoundJobs()` takes the new `title_match` option (API default true: a role search returns jobs that are that role, with `titleMatches` counting the title matches; false keeps Wellfound's listing as it is) and documents the free top-up of a thin role page.
+
+No breaking changes.
+
 ## 0.18.2 (2026-11-03)
 
 - `serp` documents the new Google SERP fields: organic results and ads with `favicon` and `sitelinks`, organic results with `rating`, `richSnippet` (the facts line under the snippet) and `thumbnail`, and `relatedSearchLinks` (each related search with its Google search URL).
