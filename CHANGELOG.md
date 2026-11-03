@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.2 (2026-11-03)
+
+- `serp` documents the new Google SERP fields: organic results and ads with `favicon` and `sitelinks`, organic results with `rating`, `richSnippet` (the facts line under the snippet) and `thumbnail`, and `relatedSearchLinks` (each related search with its Google search URL).
+- `bingSearch` documents the richer Bing results: organic `source`, `favicon`, `date`, `sitelinks`, `rating`, `richSnippet`, `thumbnail`; ads with `advertiser`, `favicon`, `sitelinks` and the advertiser's real landing URL; `relatedSearchLinks`, `aiOverview` (Bing's AI summary) and `spellingCorrection`. No code change: both methods return the API's JSON as it is.
+
+No breaking changes.
+
 ## 0.18.1 (2026-11-02)
 
 - `serp()` documents the richer Google SERP the API now returns: every organic result (also those without a snippet) with its real URL, `displayedUrl`, `domain`, `source` (site name) and `date`; ads with `displayedUrl`, `domain` and `advertiser`; and the first page's other blocks - `peopleAlsoAsk`, `relatedSearches`, `knowledgeGraph`, `topStories`, `videos`, `localResults`, `shoppingResults` and `spellingCorrection`. No code change: the method returns the API's JSON as it is.

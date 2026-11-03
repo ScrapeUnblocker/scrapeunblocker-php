@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.18.1';
+    private const VERSION = '0.18.2';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -238,11 +238,12 @@ final class Client
     /**
      * Run a Google search and return the parsed SERP as an array: 'organic'
      * results and 'topAds' / 'bottomAds' (title, real url, description,
-     * position, displayedUrl, domain; organic adds source and date, ads
-     * advertiser), 'aiOverview', 'totalResults', and the first page's other
-     * blocks: peopleAlsoAsk, relatedSearches, knowledgeGraph, topStories,
-     * videos, localResults, shoppingResults and spellingCorrection (each empty
-     * or null when Google shows none).
+     * position, displayedUrl, domain, favicon, sitelinks; organic adds source,
+     * date, rating, richSnippet and thumbnail, ads advertiser), 'aiOverview',
+     * 'totalResults', and the first page's other blocks: peopleAlsoAsk,
+     * relatedSearches, relatedSearchLinks, knowledgeGraph, topStories, videos,
+     * localResults, shoppingResults and spellingCorrection (each empty or null
+     * when Google shows none).
      * The 'captcha_pause' option is kept for compatibility; the API ignores it.
      */
     public function serp(string $keyword, array $options = []): array
