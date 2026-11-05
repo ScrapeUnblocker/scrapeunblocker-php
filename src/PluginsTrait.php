@@ -1165,13 +1165,13 @@ trait PluginsTrait
      * Scrape one Shopee product.
      *
      * One Shopee product as JSON, from a product link (`url`) or `shop_id` + `item_id` +
-     * `country`: `title`, `price`, `originalPrice`, `discountPercent`, `currency`, `rating`
-     * (average stars), `labels`, `images`, `shopLocation` and `shop` (`name`, `username`, `url`,
-     * `rating`, `ratingCount`, `followers`, `itemCount`, `responseRatePercent`, `isOfficialShop`,
-     * `isPreferredPlusSeller`, `location`, `joinedAt`). With `dataLevel: full` it also has
-     * `availability` (`in_stock`, `sold_out` or `unavailable` for a withdrawn listing) and
-     * `inStock`, `description`, `brand`, `condition`, `categories` (the path the product page's
-     * breadcrumb shows, with ids), `browseCategories` (the browse tree, whose ids Shopee's
+     * `country`: `title`, `price`, `originalPrice`, `originalPriceStatus`, `discountPercent`,
+     * `currency`, `rating` (average stars), `labels`, `images`, `shopLocation` and `shop` (`name`,
+     * `username`, `url`, `rating`, `ratingCount`, `followers`, `itemCount`, `responseRatePercent`,
+     * `isOfficialShop`, `isPreferredPlusSeller`, `location`, `joinedAt`). With `dataLevel: full`
+     * it also has `availability` (`in_stock`, `sold_out` or `unavailable` for a withdrawn listing)
+     * and `inStock`, `description`, `brand`, `condition`, `categories` (the path the product
+     * page's breadcrumb shows, with ids), `browseCategories` (the browse tree, whose ids Shopee's
      * category links use), `videos`, `variations` (option names), `models` (`modelId`, `name`,
      * `available` - false for a sold-out variation - and `tierIndex`, the model's option in each
      * variation), `attributes`, `isOfficialShop`, `isPreOrder`, `estimatedShippingDays` and
@@ -1182,9 +1182,16 @@ trait PluginsTrait
      * Shopee shows a signed-out shopper, which can be a promotional or new-customer price (see
      * `labels`). In Brazil a card often shows the Pix price (`isPixPrice: true`): `price` is then
      * the Pix price and `discountPercent` is measured against the list price, which Shopee does
-     * not show on such a card, so `originalPrice` is null. Not available: per-variation prices,
-     * stock counts, units sold, rating counts and reviews (Shopee does not publish them on the
-     * pages these endpoints read). One unit per call.
+     * not show on such a card, so `originalPrice` is null. `originalPriceStatus` says what a null
+     * `originalPrice` means: `found` (it is set), `no_discount` (Shopee shows no discount, so
+     * there is no list price), `pix` (a Pix price: Shopee does not show the list price),
+     * `not_shown` (only the product page gives a discount, usually one some variations have;
+     * Shopee's listings show the product without one, so there is no crossed-out price to read) or
+     * `lookup_failed` (Shopee shows a discount, but no listing we read in this call showed the
+     * crossed-out price; a retry can find it). A list price once found is answered again while the
+     * product keeps the same price and discount. Not available: per-variation prices, stock
+     * counts, units sold, rating counts and reviews (Shopee does not publish them on the pages
+     * these endpoints read). One unit per call.
      *
      * @param string|null $url A Shopee product link, e.g. https://shopee.sg/Beats-
      * iPhone-17-Case-i.442800909.40270108836 or

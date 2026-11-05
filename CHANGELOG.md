@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.5 (2026-11-05)
+
+- `shopeeProduct()` documents the new `originalPriceStatus` field, which says what a null `originalPrice` means: `found` (it is set), `no_discount` (no discount, so no list price), `pix` (a Pix price, whose list price Shopee does not show), `not_shown` (only the product page gives a discount; Shopee's listings show none) or `lookup_failed` (a retry can find it). No code change: the method returns the API's JSON as it is.
+
+No breaking changes.
+
 ## 0.18.3 (2026-11-03)
 
 - `crunchbaseCompany()` documents the fields the API now fills from the company's own homepage when Crunchbase leaves them empty: `seoDescription`, `coverImage`, `employeeCount`, `linkedinId`, `headquarters.street` / `postalCode`, the `instagram`, `youtube` and `github` social links, and `fromWebsite` naming the keys that came from the homepage.
