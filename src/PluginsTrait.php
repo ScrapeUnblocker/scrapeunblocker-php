@@ -231,9 +231,11 @@ trait PluginsTrait
      * Scrape Walmart product search.
      *
      * Searches Walmart for `query` and returns the products as JSON: `name`, `price` and
-     * `wasPrice`, `rating`, `reviewCount`, `brand`, `seller`, `availability`, `image` and a
-     * product `url`. Sort with `sort`, filter with `min_price`/`max_price`, and collect up to
-     * `max_results` across pages.
+     * `wasPrice`, `rating`, `reviewCount`, `brand`, `seller`, `availability`, `image`, a product
+     * `url`, `sponsored`, `unitPrice`, `priceRange`, `promotions`, `fulfillment`,
+     * `deliveryAvailable` and `variants`. The response also carries the search's `totalResults`,
+     * `pages`, `filters` and `sponsoredProducts`. Sort with `sort`, filter with
+     * `min_price`/`max_price`, and collect up to `max_results` across pages.
      *
      * @param string $query What to search, e.g. 'laptop' or 'coffee maker'.
      * @param array{sort?: string, min_price?: int, max_price?: int, page?: int, max_results?: int, proxy_country?: string} $options
@@ -269,14 +271,19 @@ trait PluginsTrait
      * ounce, where Walmart shows one), `currency`, `rollback` / `clearance`, `availability` and
      * `inStock`, `condition`, `seller` (name, Walmart or marketplace seller, its rating and review
      * count), `additionalSellerCount`, `fulfillment` (shipping, pickup and delivery: available or
-     * not, date, fee, store or place), `returnPolicy`, `rating`, `reviewCount`, `reviewSummary`
-     * (star histogram, recommend percentage, aspect scores), the first `reviews`, `categories`,
-     * `shortDescription`, `description`, `highlights`, `specifications`, `warranty`,
-     * `variantOptions` and every `variants` entry (its own item id, attributes, price, stock),
-     * `images` and `videos`. Fulfillment dates and the store are what Walmart quotes for the US
-     * location it assigns to the request (`location` names it), not a ZIP code or store you
-     * choose. Other sellers' offers are not on the product page: only their count
-     * (`additionalSellerCount`) is returned. Companion to `/marketplace/walmart-search`.
+     * not, date, fee, store or place), `returnPolicy`, `rating`, `reviewCount`,
+     * `totalReviewCount`, `reviewSummary` (star histogram, recommend percentage, aspect scores),
+     * `reviewSummaryText`, `reviewBullets`, `reviewTopics`, `topPositiveReview`,
+     * `topNegativeReview`, the first `reviews`, `offersCount`, `otherOffersFromPrice`,
+     * `otherSellers`, `promotions`, `deliveryAvailable`, `pickupAvailable`, `categories`,
+     * `relatedPages`, `colors`, `shortDescription`, `description`, `pageSummary`, `highlights`,
+     * `specifications`, `directions`, `ingredients`, `activeIngredients`, `nutritionFacts`,
+     * `warranty`, `variantOptions` and every `variants` entry (its own item id, attributes, price,
+     * stock), `images`, `videos`, `infographics` and `view360Images`. Fulfillment dates and the
+     * store are what Walmart quotes for the US location it assigns to the request (`location`
+     * names it), not a ZIP code or store you choose. The product page holds only some of the other
+     * sellers' offers (`otherSellers`); `offersCount` is how many there are. Companion to
+     * `/marketplace/walmart-search`.
      *
      * @param array{item_id?: string, url?: string, proxy_country?: string} $options
      *   - item_id: Walmart item id - the number at the end of a product link, e.g. '18638703162'
@@ -1220,19 +1227,20 @@ trait PluginsTrait
      * Scrape Taobao / Tmall keyword or category listings.
      *
      * Returns the products Taobao lists for a keyword `q` (or a `category`) as JSON: `products`
-     * (`position`, `itemId`, `title`, `url`, `image`, `price` in yuan with `currency` CNY,
-     * `priceLabel` (Taobao's price tag, e.g. 优惠价), `localPrices` (the same price in the
-     * storefront's currency, HKD and TWD), `shopId`, `shopName`, `descriptionMatchScore`,
-     * `freeShipping`, `categoryId`, `rootCategoryId`, `sellingPoints`, `reviewHighlights`),
-     * `totalResults` (how many listings Taobao reports), and `filterOptions` (brand and property
-     * facets; pass an option's `filter` value back as `filter`). Sort by relevance, sales or price
-     * and filter by a yuan price range (products whose listed price falls outside it are left out
-     * and counted in `droppedOutsidePriceRange`). Taobao shows signed-out visitors only the first
-     * 20 products of a list, so one call returns up to 20 (narrow with price ranges and filters to
-     * reach more). When Taobao has no list for the keyword, the call answers with the list of the
-     * closest keyword Taobao itself suggests and says so: `keywordSubstituted` true and
-     * `matchedKeyword`. Text comes in Chinese as sellers write it. Companion to
-     * `/marketplace/taobao-product`. One unit per call.
+     * (`position`, `itemId`, `itemKey` (the item's catalogue key: pass it to `/marketplace/taobao-
+     * product` as `item_id`), `title`, `url`, `catalogueUrl` (the item's public catalogue page),
+     * `image`, `price` in yuan with `currency` CNY, `priceLabel` (Taobao's price tag, e.g. 优惠价),
+     * `localPrices` (the same price in the storefront's currency, HKD and TWD), `shopId`,
+     * `shopName`, `descriptionMatchScore`, `freeShipping`, `categoryId`, `rootCategoryId`,
+     * `sellingPoints`, `reviewHighlights`), `totalResults` (how many listings Taobao reports), and
+     * `filterOptions` (brand and property facets; pass an option's `filter` value back as
+     * `filter`). Sort by relevance, sales or price and filter by a yuan price range (products
+     * whose listed price falls outside it are left out and counted in `droppedOutsidePriceRange`).
+     * Taobao shows signed-out visitors only the first 20 products of a list, so one call returns
+     * up to 20 (narrow with price ranges and filters to reach more). When Taobao has no list for
+     * the keyword, the call answers with the list of the closest keyword Taobao itself suggests
+     * and says so: `keywordSubstituted` true and `matchedKeyword`. Text comes in Chinese as
+     * sellers write it. Companion to `/marketplace/taobao-product`. One unit per call.
      *
      * @param string|null $q Keyword, in Chinese or English, e.g. '手机壳', '连衣裙', 'phone case'
      * (Chinese keywords match far more listings). A Taobao search or list link works too. Give `q`
@@ -1265,25 +1273,33 @@ trait PluginsTrait
     /**
      * Scrape one Taobao / Tmall item.
      *
-     * Returns one Taobao or Tmall item (by `item_id` or `url`) as JSON: `itemId`, `url`,
-     * `platform` (taobao / tmall), `title` (`titleTruncated` when Taobao shortens it, as it does
-     * for Tmall items), `price`, `originalPrice` and `priceMax` (for a price range) in yuan with
-     * `currency` CNY, `image`, `location` (ships from), `categoryId`, `rootCategoryId`,
-     * `categoryPath`, `freeShipping`, `paymentMethods`, `sellableLanguages`, `rating` (positive /
-     * neutral / negative split and counts; Taobao items only, Tmall does not publish it),
-     * `latestReview` (`rating`, `content`, `date`, `variant`, `hasMedia`, `followUps`; no reviewer
-     * identity, so no review photo or video URLs) and `shop` (`shopId`, `name`, `url`, `logo`,
-     * `sellerType` B = Tmall / C = Taobao, `creditLevel`, `openedAt`, `itemCount`, `scores` for
-     * description, service and delivery). This is what Taobao shows signed-out visitors: variants
-     * (SKUs), stock and monthly sales need a Taobao login and are not included. Companion to
+     * Returns one Taobao or Tmall item (by `item_id` or `url`) as JSON: `itemId`, `itemKey` (the
+     * item's catalogue key), `url`, `catalogueUrl`, `platform` (taobao / tmall), `title`
+     * (`titleTruncated` when Taobao shortens it, as it does for Tmall items), `price`,
+     * `originalPrice` and `priceMax` (for a price range) in yuan with `currency` CNY, `image`,
+     * `location` (ships from), `categoryId`, `rootCategoryId`, `categoryPath`, `freeShipping`,
+     * `paymentMethods`, `sellableLanguages`, `rating` (positive / neutral / negative split and
+     * counts; Taobao items only, Tmall does not publish it), `latestReview` (`rating`, `content`,
+     * `date`, `variant`, `hasMedia`, `followUps`; no reviewer identity, so no review photo or
+     * video URLs) and `shop` (`shopId`, `name`, `url`, `logo`, `sellerType` B = Tmall / C =
+     * Taobao, `creditLevel`, `openedAt`, `itemCount`, `scores` for description, service and
+     * delivery). This is what Taobao shows signed-out visitors: variants (SKUs), stock and monthly
+     * sales need a Taobao login and are not included. Taobao's public catalogue opens an item by
+     * its catalogue key (`itemKey` in `/marketplace/taobao-search` results, or the key in a
+     * www.taobao.com/list/item/<key>.htm or world.taobao.com/item/<key>.htm link); a numeric id is
+     * tried as given and answers 404 when the catalogue does not open it. Companion to
      * `/marketplace/taobao-search`. One unit per call.
      *
-     * @param string|null $itemId Numeric Taobao or Tmall item id, e.g. '765833709683' (the `id` in
-     * item.taobao.com/item.htm?id=...).
+     * @param string|null $itemId The item's catalogue key, as `/marketplace/taobao-search` returns
+     * it in `itemKey`, e.g. 'M3hoaXBUL3N4L2VnVUJncG9JWFphZz09'. A numeric Taobao or Tmall item id
+     * (the `id` in item.taobao.com/item.htm?id=...) is tried as given; Taobao's public catalogue
+     * opens items by key, so a numeric id may answer 404.
      * @param array{url?: string} $options
-     *   - url: Taobao or Tmall item link, e.g. 'https://item.taobao.com/item.htm?id=765833709683'
-     * or 'https://detail.tmall.com/item.htm?id=1081364414020' (world.taobao.com, mobile and
-     * overseas item links work too). Either item_id or url is required.
+     *   - url: The item's catalogue link, e.g.
+     * 'https://www.taobao.com/list/item/M3hoaXBUL3N4L2VnVUJncG9JWFphZz09.htm' or
+     * 'https://world.taobao.com/item/M3hoaXBUL3N4L2VnVUJncG9JWFphZz09.htm' (the links Taobao's own
+     * lists and search engines give). An item.taobao.com or detail.tmall.com link is taken by its
+     * numeric id, as `item_id` is. Either item_id or url is required.
      * @return array<mixed>
      * Calls POST /marketplace/taobao-product.
      */
@@ -3883,11 +3899,12 @@ trait PluginsTrait
      *
      * Runs the Google Shopping vertical (`udm=28`) for `q` and returns the product cards as JSON:
      * `title`, `price`, `currency`, `currencyCode`, `originalPrice`, `discount`, `merchant`,
-     * `rating`, `reviewCount` and Google's own ids for the product (`productId`, `catalogId`,
-     * `offerId` - stable across searches, for tracking one product). Set `proxy_country`/`gl` to
-     * target a market (prices/merchants are region-specific) and `min_price`/`max_price` to
-     * filter. One render returns the first page of products (v1). Note: Google Shopping exposes no
-     * per-product URL, so `url` is omitted and `image` is best-effort.
+     * `delivery`, `rating`, `reviewCount`, `image` and Google's own ids for the product
+     * (`productId`, `catalogId`, `offerId` - stable across searches, for tracking one product).
+     * Set `proxy_country`/`gl` to target a market (prices/merchants are region-specific) and
+     * `min_price`/`max_price` to filter. One render returns the first page of products (v1). Note:
+     * Google Shopping exposes no per-product URL, so `url` is omitted. `image` is the product's
+     * thumbnail URL.
      *
      * @param string $q Product search term, e.g. 'wireless headphones'.
      * @param array{gl?: string, min_price?: int, max_price?: int, max_results?: int, proxy_country?: string} $options
@@ -4702,10 +4719,11 @@ trait PluginsTrait
      * `price`, `zestimate`, `rentZestimate`, `beds`, `baths`, `area`, `lotSize`, `yearBuilt`,
      * `homeType`, `status`, `description`, `priceHistory`, `taxHistory`, `schools`, `facts`,
      * `parking`, listing `brokerName`/`listingAgent`, `mlsid`, `monthlyHoaFee`, `pricePerSqft`,
-     * `daysOnZillow`, `taxAssessedValue`, coordinates, the `photos` gallery and `virtualTourUrl`.
-     * Every field is always present and is `null` when Zillow does not show it for that listing
-     * (for-sale and sold pages carry fewer sections than rentals). Companion to the Zillow search
-     * plugin (`/realestate/zillow`).
+     * `daysOnZillow`, `datePosted`, `pageViewCount` and `favoriteCount` (how many people viewed
+     * and saved the listing), `taxAssessedValue`, coordinates, the `photos` gallery and
+     * `virtualTourUrl`. Every field is always present and is `null` when Zillow does not show it
+     * for that listing (for-sale and sold pages carry fewer sections than rentals). Companion to
+     * the Zillow search plugin (`/realestate/zillow`).
      *
      * @param array{url?: string, zpid?: string, proxy_country?: string} $options
      *   - url: Zillow property URL, e.g. 'https://www.zillow.com/homedetails/.../29432984_zpid/'.
@@ -5665,10 +5683,12 @@ trait PluginsTrait
      *
      * Returns a company's Trustpilot profile and reviews as JSON. `company` is the reviewed domain
      * (e.g. `www.nike.com`). The response has a `company` summary (`trustScore`, `totalReviews`,
-     * `ratingDistribution` 1-5, `categories`, `contact`) and a `reviews` array - each with
-     * `rating`, `title`, `text`, `verified`, `author` (name, country, review count), `reply` (the
-     * company's response) and dates. Page with `page`/`pages` (20 reviews per page), and filter
-     * with `stars`, `sort` (recency/relevancy), `language`, `date`, `search`, `verified` or
+     * `ratingDistribution` 1-5, `categories`, `contact`) and a `reviews` array - each with `url`,
+     * `rating`, `title`, `text`, `verified`, `verificationLevel`, `verificationSource`, `source`,
+     * `pending`, `merged`, `author` (name, country, review count, `id`, `image`, `profileUrl`,
+     * `reviewsOfThisCompany`), `reply` (the company's response, with dates) and `date` /
+     * `experiencedDate` / `updatedDate`. Page with `page`/`pages` (20 reviews per page), and
+     * filter with `stars`, `sort` (recency/relevancy), `language`, `date`, `search`, `verified` or
      * `replies`.
      *
      * @param string $company The reviewed company's domain, e.g. 'www.nike.com' or 'nike.com'. A

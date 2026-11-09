@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.6 (2026-11-09)
+
+- Plugin method docs list the new response fields: Walmart product and search, Amazon product, Trustpilot reviews, Zillow property detail and Google Shopping. Taobao item methods document the catalogue key (`itemKey`). Requests are unchanged.
+
+No breaking changes.
+
 ## 0.18.5 (2026-11-05)
 
 - `shopeeProduct()` documents the new `originalPriceStatus` field, which says what a null `originalPrice` means: `found` (it is set), `no_discount` (no discount, so no list price), `pix` (a Pix price, whose list price Shopee does not show), `not_shown` (only the product page gives a discount; Shopee's listings show none) or `lookup_failed` (a retry can find it). No code change: the method returns the API's JSON as it is.
