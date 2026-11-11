@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 (2026-11-11)
+
+- `serp()` takes the new `full_urls` option. Google gives out a results page's real links a few at a time, the last ones up to about 40 seconds after the search; by default the call returns sooner and a result whose link has not come yet has the site's home page as its `url` (or a Google redirect link). `'full_urls' => true` waits until every result has its real URL, so the call takes up to about 40 seconds longer. Billed the same. The parameter is only sent when true, so other requests are unchanged.
+
+No breaking changes.
+
 ## 0.18.6 (2026-11-09)
 
 - Plugin method docs list the new response fields: Walmart product and search, Amazon product, Trustpilot reviews, Zillow property detail and Google Shopping. Taobao item methods document the catalogue key (`itemKey`). Requests are unchanged.

@@ -261,6 +261,20 @@ final class ClientTest extends TestCase
         $this->assertSame(['organic' => []], $out);
         $this->assertStringContainsString('/serpApi', $this->urls[0]);
         $this->assertStringContainsString('pages_to_check=2', $this->urls[0]);
+        $this->assertStringNotContainsString('full_urls', $this->urls[0]);
+    }
+
+    public function testSerpSendsFullUrlsOnlyWhenTrue(): void
+    {
+        $body = json_encode(['organic' => []]);
+        $client = $this->client([['status' => 200, 'body' => $body], ['status' => 200, 'body' => $body]]);
+        $client->serp('hello world', ['full_urls' => true]);
+        $client->serp('hello world', ['full_urls' => false]);
+
+        parse_str((string) parse_url($this->urls[0], PHP_URL_QUERY), $first);
+        parse_str((string) parse_url($this->urls[1], PHP_URL_QUERY), $second);
+        $this->assertSame('true', $first['full_urls'] ?? null);
+        $this->assertArrayNotHasKey('full_urls', $second);
     }
 
     public function testGoogleLocalTargetsMapsEndpoint(): void

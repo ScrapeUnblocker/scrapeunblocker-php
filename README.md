@@ -190,6 +190,17 @@ foreach ($serp['organic'] as $r) {
 print_r([$serp['peopleAlsoAsk'], $serp['relatedSearchLinks'], $serp['knowledgeGraph'], $serp['topStories']]);
 ```
 
+Google gives out a results page's real result links a few at a time, the last
+ones up to about 40 seconds after the search. By default `serp()` returns
+sooner, and a result whose link has not come yet has the site's home page as
+its `url` (or a Google redirect link when Google shows no site). Pass
+`'full_urls' => true` to wait until (nearly) every result has its real URL:
+the call then takes up to about 40 seconds longer and is billed the same.
+
+```php
+$serp = $su->serp('best hiking boots', ['full_urls' => true]);
+```
+
 ## Google Local (Maps)
 
 ```php

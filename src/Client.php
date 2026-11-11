@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.18.6';
+    private const VERSION = '0.19.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -245,6 +245,16 @@ final class Client
      * localResults, shoppingResults and spellingCorrection (each empty or null
      * when Google shows none).
      * The 'captcha_pause' option is kept for compatibility; the API ignores it.
+     *
+     * 'full_urls' => true waits until Google gives out every result's real
+     * URL. Google releases a results page's links a few at a time, the last
+     * ones up to about 40 seconds after the search. Without it the call
+     * returns sooner, and a result whose link has not come yet has the site's
+     * home page as its 'url' (or a Google redirect link when Google shows no
+     * site). With it, the call takes up to about 40 seconds longer. Billed
+     * the same.
+     *
+     * @param array{proxy_country?:string,pages_to_check?:int,wait_after_load?:int,captcha_pause?:int,full_urls?:bool} $options
      */
     public function serp(string $keyword, array $options = []): array
     {
@@ -254,6 +264,7 @@ final class Client
             'pages_to_check' => $options['pages_to_check'] ?? 1,
             'wait_after_load' => ($options['wait_after_load'] ?? 0) ?: null,
             'captcha_pause' => ($options['captcha_pause'] ?? 0) ?: null,
+            'full_urls' => ($options['full_urls'] ?? false) ? true : null,
         ]);
     }
 
