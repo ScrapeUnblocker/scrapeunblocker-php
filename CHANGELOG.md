@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 (2026-11-18)
+
+- New `getPageWithXhr($url, $captureXhr, ['steps' => ..., 'proxy_country' => ...])` for the API's `capture_xhr` parameter: the page is rendered in a real browser and every XHR/fetch response whose URL contains the fragment comes back as a `CapturedPage` (`html`, `xhr` - `XhrCall` objects with `url`, `method`, `status`, `contentType`, `body`, `bodyOmitted` and a `json()` helper -, `xhrTruncated`, `proxy`). Useful when a site renders from a JSON API that refuses direct requests.
+
+No breaking changes.
+
 ## 0.19.0 (2026-11-11)
 
 - `serp()` takes the new `full_urls` option. Google gives out a results page's real links a few at a time, the last ones up to about 40 seconds after the search; by default the call returns sooner and a result whose link has not come yet has the site's home page as its `url` (or a Google redirect link). `'full_urls' => true` waits until every result has its real URL, so the call takes up to about 40 seconds longer. Billed the same. The parameter is only sent when true, so other requests are unchanged.

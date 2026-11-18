@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.19.0';
+    private const VERSION = '0.20.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -233,6 +233,32 @@ final class Client
         ])['body'];
 
         return PageResult::fromArray($this->decodeJson($body));
+    }
+
+    /**
+     * Fetch a URL and return the page's own XHR/fetch responses with it.
+     *
+     * Many sites render from a JSON API the page calls itself, and that API
+     * often refuses direct requests (the page signs each call). The page is
+     * rendered in a real browser and every XHR/fetch response whose URL
+     * contains $captureXhr (e.g. '/api/search') comes back in the order the
+     * page received it: up to 20 responses and 10 MB of bodies. 'steps' (same
+     * format as getPageSource()) make the page fire the call. A failed step
+     * throws a ValidationException whose body holds the step_failed JSON,
+     * including 'xhr'.
+     *
+     * @param array{proxy_country?:string,steps?:list<array<string,mixed>>} $options
+     */
+    public function getPageWithXhr(string $url, string $captureXhr, array $options = []): CapturedPage
+    {
+        $body = $this->request('/getPageSource', [
+            'url' => $url,
+            'capture_xhr' => $captureXhr,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'steps' => $this->encodeSteps($options['steps'] ?? null),
+        ])['body'];
+
+        return CapturedPage::fromArray($this->decodeJson($body));
     }
 
     /**

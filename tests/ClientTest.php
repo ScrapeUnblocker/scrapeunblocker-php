@@ -767,4 +767,40 @@ final class ClientTest extends TestCase
         $this->assertSame(['url' => $productUrl], $this->query($this->urls[1]));
     }
 
+
+    public function testGetPageWithXhrReturnsTheCapturedCalls(): void
+    {
+        $payload = [
+            'html' => '<html>results</html>',
+            'xhr' => [
+                ['url' => 'https://api.example.com/v2/items?page=1', 'method' => 'GET', 'status' => 200,
+                    'content_type' => 'application/json', 'body' => '{"items":[1,2]}'],
+                ['url' => 'https://api.example.com/v2/items?page=2', 'method' => 'GET', 'status' => 403,
+                    'content_type' => null, 'body' => null, 'body_omitted' => 'binary'],
+            ],
+            'xhr_truncated' => false,
+            'proxy' => 'us',
+        ];
+        $client = $this->client([['status' => 200, 'body' => json_encode($payload)]]);
+        $steps = [['action' => 'click', 'selector' => '#more']];
+        $page = $client->getPageWithXhr('https://example.com/search', '/v2/items', [
+            'steps' => $steps,
+            'proxy_country' => 'us',
+        ]);
+
+        $this->assertSame('<html>results</html>', $page->html);
+        $this->assertSame('us', $page->proxy);
+        $this->assertFalse($page->xhrTruncated);
+        $this->assertCount(2, $page->xhr);
+        $this->assertSame(['items' => [1, 2]], $page->xhr[0]->json());
+        $this->assertSame('application/json', $page->xhr[0]->contentType);
+        $this->assertNull($page->xhr[1]->body);
+        $this->assertSame('binary', $page->xhr[1]->bodyOmitted);
+        parse_str((string) parse_url($this->urls[0], PHP_URL_QUERY), $query);
+        $this->assertSame('/v2/items', $query['capture_xhr']);
+        $this->assertSame($steps, json_decode($query['steps'], true));
+        $this->assertArrayNotHasKey('get_cookies', $query);
+        $this->expectException(\JsonException::class);
+        $page->xhr[1]->json();
+    }
 }
