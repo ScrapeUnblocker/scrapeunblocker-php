@@ -25,6 +25,7 @@ use ScrapeUnblocker\Exception\TargetNotFoundException;
 use ScrapeUnblocker\Exception\UnsupportedContentException;
 use ScrapeUnblocker\Exception\UpstreamOutageException;
 use ScrapeUnblocker\Exception\ValidationException;
+use ScrapeUnblocker\PageWithHeaders;
 use ScrapeUnblocker\ParsedPage;
 
 final class ClientTest extends TestCase
@@ -802,5 +803,106 @@ final class ClientTest extends TestCase
         $this->assertArrayNotHasKey('get_cookies', $query);
         $this->expectException(\JsonException::class);
         $page->xhr[1]->json();
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function headersPage(array $overrides = []): array
+    {
+        return $overrides + [
+            'html' => '<!DOCTYPE html><html>hi</html>',
+            'status_code' => 200,
+            'final_url' => 'https://www.example.com/',
+            'headers' => [
+                'content-type' => 'text/html',
+                'set-cookie' => ['a=1; Path=/', 'b=2'],
+                'vary' => 'Accept, Cookie',
+            ],
+            'request_headers' => ['user-agent' => 'Mozilla/5.0', 'accept' => 'text/html'],
+            'proxy' => 'us',
+        ];
+    }
+
+    public function testGetPageWithHeadersReturnsStatusUrlAndHeaders(): void
+    {
+        $payload = $this->headersPage();
+        $client = $this->client([['status' => 200, 'body' => json_encode($payload)]]);
+        $page = $client->getPageWithHeaders('https://example.com', ['proxy_country' => 'US', 'time_sleep' => 2]);
+
+        $this->assertInstanceOf(PageWithHeaders::class, $page);
+        $this->assertSame('<!DOCTYPE html><html>hi</html>', $page->html);
+        $this->assertSame(200, $page->statusCode);
+        $this->assertSame('https://www.example.com/', $page->finalUrl);
+        $this->assertSame('text/html', $page->headers['content-type']);
+        $this->assertSame(['a=1; Path=/', 'b=2'], $page->headers['set-cookie']);
+        $this->assertSame('Accept, Cookie', $page->headers['vary']);
+        $this->assertSame(['user-agent' => 'Mozilla/5.0', 'accept' => 'text/html'], $page->requestHeaders);
+        $this->assertSame('us', $page->proxy);
+        $this->assertNull($page->cookies);
+        $this->assertSame($payload, $page->raw);
+        $this->assertSame('/getPageSource', parse_url($this->urls[0], PHP_URL_PATH));
+        $query = $this->query($this->urls[0]);
+        $this->assertSame('https://example.com', $query['url']);
+        $this->assertSame('true', $query['get_headers']);
+        $this->assertSame('US', $query['proxy_country']);
+        $this->assertSame('2', $query['time_sleep']);
+        foreach (['get_cookies', 'parsed_data', 'markdown', 'list_elements', 'capture_xhr'] as $other) {
+            $this->assertArrayNotHasKey($other, $query);
+        }
+    }
+
+    public function testGetPageWithHeadersSendsGetCookiesOnlyWhenAsked(): void
+    {
+        $cookies = [['name' => 'a', 'value' => '1', 'domain' => '.example.com']];
+        $client = $this->client([['status' => 200, 'body' => json_encode($this->headersPage(['cookies' => $cookies]))]]);
+        $page = $client->getPageWithHeaders('https://example.com', ['get_cookies' => true]);
+
+        $this->assertSame($cookies, $page->cookies);
+        $this->assertSame(['a=1; Path=/', 'b=2'], $page->headers['set-cookie']);
+        $query = $this->query($this->urls[0]);
+        $this->assertSame('true', $query['get_headers']);
+        $this->assertSame('true', $query['get_cookies']);
+    }
+
+    public function testGetPageWithHeadersKeepsUnobservedFieldsNull(): void
+    {
+        $payload = ['html' => '<html>hi</html>', 'status_code' => null, 'final_url' => null, 'headers' => null,
+            'request_headers' => null, 'proxy' => null];
+        $client = $this->client([['status' => 200, 'body' => json_encode($payload)]]);
+        $page = $client->getPageWithHeaders('https://example.com');
+
+        $this->assertSame('<html>hi</html>', $page->html);
+        $this->assertNull($page->statusCode);
+        $this->assertNull($page->finalUrl);
+        $this->assertNull($page->headers);
+        $this->assertNull($page->requestHeaders);
+        $this->assertNull($page->proxy);
+    }
+
+    public function testGetPageWithHeadersReturnsTheTargetsOwnErrorPage(): void
+    {
+        // A target's 401/451/5xx page is delivered as HTTP 200; its status is in the JSON.
+        $client = $this->client([['status' => 200, 'body' => json_encode($this->headersPage(['status_code' => 503]))]]);
+        $page = $client->getPageWithHeaders('https://example.com');
+
+        $this->assertSame(503, $page->statusCode);
+        $this->assertSame('<!DOCTYPE html><html>hi</html>', $page->html);
+    }
+
+    public function testTargetNotFoundWithHeadersExposesTheHtml(): void
+    {
+        $body = json_encode($this->headersPage(['html' => '<html>gone</html>', 'status_code' => 404]));
+        $client = $this->client([['status' => 404, 'body' => $body, 'headers' => ['x-origin-status' => '404']]]);
+        try {
+            $client->getPageWithHeaders('https://example.com/gone');
+            $this->fail('expected TargetNotFoundException');
+        } catch (TargetNotFoundException $e) {
+            $this->assertSame(404, $e->originStatus);
+            $this->assertSame('<html>gone</html>', $e->html);
+            // The target's headers stay reachable through the raw JSON body.
+            $this->assertSame(['a=1; Path=/', 'b=2'], json_decode((string) $e->body, true)['headers']['set-cookie']);
+            $this->assertCount(1, $this->urls);
+        }
     }
 }

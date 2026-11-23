@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.20.0';
+    private const VERSION = '0.21.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -233,6 +233,39 @@ final class Client
         ])['body'];
 
         return PageResult::fromArray($this->decodeJson($body));
+    }
+
+    /**
+     * Fetch a URL and also return the target's status code, the final URL and
+     * the response headers that served it.
+     *
+     * Returns a PageWithHeaders: ->html, ->statusCode (the target's own
+     * status), ->finalUrl (after redirects), ->headers (the target's response
+     * headers with lowercase names; a header sent more than once is joined with
+     * ', ' except 'set-cookie', which is always a list of strings),
+     * ->requestHeaders (the headers sent to the target) and ->proxy (the exit's
+     * lowercase ISO-2 country). Each of them is null when the render path could
+     * not observe it. 'get_cookies' => true also returns the cookies, as
+     * getPageWithCookies() does; ->cookies is null without it.
+     *
+     * A target page that answers 401, 451 or 5xx is returned, with the target's
+     * status on ->statusCode. When the target page itself answers 404 or 410
+     * this throws TargetNotFoundException (billed; the not-found page is on
+     * ->html and the full JSON, headers included, on ->body).
+     *
+     * @param array{get_cookies?:bool,proxy_country?:string,time_sleep?:int} $options
+     */
+    public function getPageWithHeaders(string $url, array $options = []): PageWithHeaders
+    {
+        $body = $this->request('/getPageSource', [
+            'url' => $url,
+            'get_headers' => true,
+            'get_cookies' => ($options['get_cookies'] ?? false) ? true : null,
+            'proxy_country' => $options['proxy_country'] ?? null,
+            'time_sleep' => $options['time_sleep'] ?? null,
+        ])['body'];
+
+        return PageWithHeaders::fromArray($this->decodeJson($body));
     }
 
     /**

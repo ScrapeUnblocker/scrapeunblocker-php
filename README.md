@@ -293,6 +293,29 @@ print_r($page->cookies);
 echo $page->proxy;
 ```
 
+## Status code, final URL and headers
+
+`getPageWithHeaders()` returns the page together with what the target answered:
+its own status code, the URL after redirects, its response headers and the
+headers that were sent to it.
+
+```php
+$page = $su->getPageWithHeaders('https://example.com', ['proxy_country' => 'US']);
+echo $page->statusCode;                 // the target's status, e.g. 200
+echo $page->finalUrl;                   // after redirects
+echo $page->headers['content-type'];
+print_r($page->headers['set-cookie']);  // always a list of strings
+print_r($page->requestHeaders);         // what was sent to the target
+echo $page->proxy;                      // exit country, e.g. 'us'
+```
+
+Header names are lowercase; a header sent more than once is joined with `', '`,
+except `set-cookie`, which is always a list. A field the render path could not
+observe is `null`. Pass `'get_cookies' => true` to get `$page->cookies` in the
+same call. A target page that answers 401, 451 or 5xx comes back as a result
+with its status on `$page->statusCode`; a 404 or 410 throws
+`TargetNotFoundException` (see [below](#the-target-page-does-not-exist-404--410)).
+
 ## The page's own API calls (XHR/fetch)
 
 Many sites render from a JSON API the page calls itself, and that API often
@@ -405,7 +428,7 @@ try {
 
 `TargetNotFoundException` extends `NotFoundException`, so `catch (NotFoundException $e)` catches it too. A 404 without `X-Origin-Status` is the API's own and stays a plain `NotFoundException`.
 
-With `getParsed()` the body is the parsed-data JSON (`{"data": {"page_type": "not_found", ...}}`), so `html` is `null` there; the raw JSON is on `->body`. With `getMarkdown()` the not-found page on `->html` is Markdown.
+With `getParsed()` the body is the parsed-data JSON (`{"data": {"page_type": "not_found", ...}}`), so `html` is `null` there; the raw JSON is on `->body`. With `getMarkdown()` the not-found page on `->html` is Markdown. With `getPageWithHeaders()` the page is on `->html` and the whole JSON, the target's headers included, on `->body`.
 
 ### No structured data on the page
 
