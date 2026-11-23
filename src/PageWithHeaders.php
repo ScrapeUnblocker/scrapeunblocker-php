@@ -28,10 +28,17 @@ final class PageWithHeaders
         public readonly ?string $proxy,
         public readonly mixed $cookies,
         public readonly array $raw,
+        /**
+         * True when the call named a sticky 'session' and the API answered it
+         * through another IP than the session's (the X-Session-Changed
+         * header); the session has then moved to the new IP, unless the call
+         * ran in parallel over the session's limit.
+         */
+        public readonly bool $sessionChanged = false,
     ) {
     }
 
-    public static function fromArray(array $payload): self
+    public static function fromArray(array $payload, bool $sessionChanged = false): self
     {
         return new self(
             isset($payload['html']) ? (string) $payload['html'] : null,
@@ -42,6 +49,7 @@ final class PageWithHeaders
             isset($payload['proxy']) ? (string) $payload['proxy'] : null,
             $payload['cookies'] ?? null,
             $payload,
+            $sessionChanged,
         );
     }
 }

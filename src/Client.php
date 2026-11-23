@@ -40,7 +40,7 @@ final class Client
     use PluginsTrait;
 
     private const DEFAULT_BASE_URL = 'https://api.scrapeunblocker.com';
-    private const VERSION = '0.21.0';
+    private const VERSION = '0.22.0';
     private const API_KEY_HEADER = 'x-scrapeunblocker-key';
     private const RETRYABLE = [429, 502, 503, 504];
 
@@ -109,10 +109,18 @@ final class Client
      * ]);
      * ```
      *
+     * 'session' is a sticky session id (1-64 letters, digits, '_', '.' or
+     * '-'): calls with the same id leave through the same proxy IP (see the
+     * README's "Sticky sessions"). The string this returns carries no response
+     * headers, so it cannot say whether the session's IP changed; when you
+     * need to know, use a method that returns a result object
+     * (getPageWithHeaders(), getPageWithCookies(), getParsed(),
+     * getPageWithXhr()) and read its ->sessionChanged.
+     *
      * When the target page itself answers 404 or 410 this throws
      * TargetNotFoundException (billed; the not-found page is on ->html).
      *
-     * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
+     * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>,session?:string} $options
      */
     public function getPageSource(string $url, array $options = []): string
     {
@@ -124,6 +132,7 @@ final class Client
             'value' => $options['value'] ?? null,
             'method_timeout' => $options['method_timeout'] ?? null,
             'steps' => $this->encodeSteps($options['steps'] ?? null),
+            'session' => $options['session'] ?? null,
         ])['body'];
     }
 
@@ -139,7 +148,9 @@ final class Client
      * Options: 'main_content_only' (default true) keeps only the page's main
      * content, without navigation, the site header, footer and sidebars; pass
      * false to convert the whole page. 'proxy_country', 'time_sleep', 'method',
-     * 'value', 'method_timeout' and 'steps' work as in getPageSource().
+     * 'value', 'method_timeout', 'steps' and 'session' work as in
+     * getPageSource() (the returned string cannot say whether the session's IP
+     * changed either).
      *
      * ```php
      * $md = $su->getMarkdown('https://example.com/article');
@@ -150,7 +161,7 @@ final class Client
      * TargetNotFoundException (billed; the not-found page, as Markdown, is on
      * ->html).
      *
-     * @param array{main_content_only?:bool,proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
+     * @param array{main_content_only?:bool,proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>,session?:string} $options
      */
     public function getMarkdown(string $url, array $options = []): string
     {
@@ -164,6 +175,7 @@ final class Client
             'value' => $options['value'] ?? null,
             'method_timeout' => $options['method_timeout'] ?? null,
             'steps' => $this->encodeSteps($options['steps'] ?? null),
+            'session' => $options['session'] ?? null,
         ])['body'];
     }
 
@@ -173,7 +185,8 @@ final class Client
      * With list_elements the API answers with { url, count, elements: [...] }
      * rather than a rendered document - the same request, a structured result.
      * Accepts the same browser options as getPageSource(), including 'steps' to
-     * drive the page before the elements are collected.
+     * drive the page before the elements are collected and 'session' (the
+     * returned array cannot say whether the session's IP changed).
      *
      * ```php
      * $out = $su->listElements('https://example.com', [
@@ -183,7 +196,7 @@ final class Client
      * print_r($out['elements']);
      * ```
      *
-     * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>} $options
+     * @param array{proxy_country?:string,time_sleep?:int,method?:string,value?:string,method_timeout?:int,steps?:list<array<string,mixed>>,session?:string} $options
      * @return array<mixed>
      */
     public function listElements(string $url, array $options = []): array
@@ -197,6 +210,7 @@ final class Client
             'value' => $options['value'] ?? null,
             'method_timeout' => $options['method_timeout'] ?? null,
             'steps' => $this->encodeSteps($options['steps'] ?? null),
+            'session' => $options['session'] ?? null,
         ]);
     }
 
@@ -207,32 +221,46 @@ final class Client
      * ->dataExtracted false, empty ->data and the rendered page on ->html (billed
      * like getPageSource()). Throws TargetNotFoundException (billed, ->html null)
      * when the target page itself answered 404 or 410.
+     *
+     * 'session' works as in getPageSource(); ->sessionChanged says whether the
+     * session's IP changed on this call.
+     *
+     * @param array{proxy_country?:string,time_sleep?:int,refresh_rules?:bool,rules_hint?:string,session?:string} $options
      */
     public function getParsed(string $url, array $options = []): ParsedPage
     {
-        $body = $this->request('/getPageSource', [
+        $response = $this->request('/getPageSource', [
             'url' => $url,
             'parsed_data' => true,
             'proxy_country' => $options['proxy_country'] ?? null,
             'time_sleep' => $options['time_sleep'] ?? null,
             'refresh_rules' => ($options['refresh_rules'] ?? false) ? true : null,
             'rules_hint' => $options['rules_hint'] ?? null,
-        ])['body'];
+            'session' => $options['session'] ?? null,
+        ]);
 
-        return ParsedPage::fromArray($this->decodeJson($body));
+        return ParsedPage::fromArray($this->decodeJson($response['body']), $response['sessionChanged']);
     }
 
-    /** Fetch a URL and also return the cookies and proxy that served it. */
+    /**
+     * Fetch a URL and also return the cookies and proxy that served it.
+     *
+     * 'session' works as in getPageSource(); ->sessionChanged says whether the
+     * session's IP changed on this call.
+     *
+     * @param array{proxy_country?:string,time_sleep?:int,session?:string} $options
+     */
     public function getPageWithCookies(string $url, array $options = []): PageResult
     {
-        $body = $this->request('/getPageSource', [
+        $response = $this->request('/getPageSource', [
             'url' => $url,
             'get_cookies' => true,
             'proxy_country' => $options['proxy_country'] ?? null,
             'time_sleep' => $options['time_sleep'] ?? null,
-        ])['body'];
+            'session' => $options['session'] ?? null,
+        ]);
 
-        return PageResult::fromArray($this->decodeJson($body));
+        return PageResult::fromArray($this->decodeJson($response['body']), $response['sessionChanged']);
     }
 
     /**
@@ -246,26 +274,29 @@ final class Client
      * ->requestHeaders (the headers sent to the target) and ->proxy (the exit's
      * lowercase ISO-2 country). Each of them is null when the render path could
      * not observe it. 'get_cookies' => true also returns the cookies, as
-     * getPageWithCookies() does; ->cookies is null without it.
+     * getPageWithCookies() does; ->cookies is null without it. 'session' works
+     * as in getPageSource(), and ->sessionChanged says whether the session's IP
+     * changed on this call.
      *
      * A target page that answers 401, 451 or 5xx is returned, with the target's
      * status on ->statusCode. When the target page itself answers 404 or 410
      * this throws TargetNotFoundException (billed; the not-found page is on
      * ->html and the full JSON, headers included, on ->body).
      *
-     * @param array{get_cookies?:bool,proxy_country?:string,time_sleep?:int} $options
+     * @param array{get_cookies?:bool,proxy_country?:string,time_sleep?:int,session?:string} $options
      */
     public function getPageWithHeaders(string $url, array $options = []): PageWithHeaders
     {
-        $body = $this->request('/getPageSource', [
+        $response = $this->request('/getPageSource', [
             'url' => $url,
             'get_headers' => true,
             'get_cookies' => ($options['get_cookies'] ?? false) ? true : null,
             'proxy_country' => $options['proxy_country'] ?? null,
             'time_sleep' => $options['time_sleep'] ?? null,
-        ])['body'];
+            'session' => $options['session'] ?? null,
+        ]);
 
-        return PageWithHeaders::fromArray($this->decodeJson($body));
+        return PageWithHeaders::fromArray($this->decodeJson($response['body']), $response['sessionChanged']);
     }
 
     /**
@@ -278,20 +309,22 @@ final class Client
      * page received it: up to 20 responses and 10 MB of bodies. 'steps' (same
      * format as getPageSource()) make the page fire the call. A failed step
      * throws a ValidationException whose body holds the step_failed JSON,
-     * including 'xhr'.
+     * including 'xhr'. 'session' works as in getPageSource(); ->sessionChanged
+     * says whether the session's IP changed on this call.
      *
-     * @param array{proxy_country?:string,steps?:list<array<string,mixed>>} $options
+     * @param array{proxy_country?:string,steps?:list<array<string,mixed>>,session?:string} $options
      */
     public function getPageWithXhr(string $url, string $captureXhr, array $options = []): CapturedPage
     {
-        $body = $this->request('/getPageSource', [
+        $response = $this->request('/getPageSource', [
             'url' => $url,
             'capture_xhr' => $captureXhr,
             'proxy_country' => $options['proxy_country'] ?? null,
             'steps' => $this->encodeSteps($options['steps'] ?? null),
-        ])['body'];
+            'session' => $options['session'] ?? null,
+        ]);
 
-        return CapturedPage::fromArray($this->decodeJson($body));
+        return CapturedPage::fromArray($this->decodeJson($response['body']), $response['sessionChanged']);
     }
 
     /**
@@ -640,7 +673,7 @@ final class Client
 
     /**
      * @param array<string,mixed> $params
-     * @return array{status:int,body:string}
+     * @return array{status:int,body:string,sessionChanged:bool}
      */
     private function request(string $path, array $params): array
     {
@@ -663,14 +696,18 @@ final class Client
                 continue;
             }
 
-            if ($status >= 200 && $status < 300) {
-                return ['status' => $status, 'body' => $body];
-            }
-
             $responseHeaders = [];
             foreach ($result['headers'] ?? [] as $name => $value) {
                 $responseHeaders[strtolower((string) $name)] = is_array($value) ? implode(', ', $value) : (string) $value;
             }
+
+            if ($status >= 200 && $status < 300) {
+                // A sticky session call answered through another IP than the session's.
+                $sessionChanged = trim($responseHeaders['x-session-changed'] ?? '') === 'true';
+
+                return ['status' => $status, 'body' => $body, 'sessionChanged' => $sessionChanged];
+            }
+
             throw $this->errorForStatus($status, $body, $responseHeaders);
         }
     }

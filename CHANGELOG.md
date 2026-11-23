@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.22.0 (2026-11-23)
+
+- Sticky sessions: `getPageSource()`, `getMarkdown()`, `listElements()`, `getParsed()`, `getPageWithCookies()`, `getPageWithHeaders()` and `getPageWithXhr()` take a new `'session'` option for the API's `session` parameter. Calls with the same id (1-64 letters, digits, `_`, `.`, `-`) leave through the same proxy IP while the session is in use (it expires after 10 minutes without calls). The parameter is only sent when given.
+- `ParsedPage`, `PageResult`, `PageWithHeaders` and `CapturedPage` have a `sessionChanged` property: `true` when the API answered with `X-Session-Changed: true`, i.e. the call was answered through another IP than the session's. `getPageSource()`, `getMarkdown()` and `listElements()` still return a string / array; use a result-object method when you need the flag.
+
+No breaking changes.
+
 ## 0.21.0 (2026-11-23)
 
 - New `getPageWithHeaders($url, ['get_cookies' => ..., 'proxy_country' => ..., 'time_sleep' => ...])` for the API's `get_headers` parameter. It returns a `PageWithHeaders` with `html`, the target's own `statusCode`, the `finalUrl` after redirects, the target's response `headers` (lowercase names; `set-cookie` is always a list), the `requestHeaders` sent to the target, the exit `proxy` country, `cookies` when `'get_cookies' => true` is passed, and `raw`. A field the render path could not observe is `null`. A target that answers 404 or 410 throws `TargetNotFoundException`, as the other page methods do.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ScrapeUnblocker\Tests;
 
 use PHPUnit\Framework\TestCase;
+use ScrapeUnblocker\CapturedPage;
 use ScrapeUnblocker\Client;
 use ScrapeUnblocker\Exception\ApiException;
 use ScrapeUnblocker\Exception\AuthenticationException;
@@ -25,6 +26,7 @@ use ScrapeUnblocker\Exception\TargetNotFoundException;
 use ScrapeUnblocker\Exception\UnsupportedContentException;
 use ScrapeUnblocker\Exception\UpstreamOutageException;
 use ScrapeUnblocker\Exception\ValidationException;
+use ScrapeUnblocker\PageResult;
 use ScrapeUnblocker\PageWithHeaders;
 use ScrapeUnblocker\ParsedPage;
 
@@ -904,5 +906,95 @@ final class ClientTest extends TestCase
             $this->assertSame(['a=1; Path=/', 'b=2'], json_decode((string) $e->body, true)['headers']['set-cookie']);
             $this->assertCount(1, $this->urls);
         }
+    }
+
+    /**
+     * Every method that calls /getPageSource, with the arguments it needs and a body it can decode.
+     *
+     * @return array<string,array{callable(Client,array):mixed,string}>
+     */
+    private function sessionCalls(): array
+    {
+        return [
+            'getPageSource' => [fn (Client $c, array $o) => $c->getPageSource('https://example.com', $o), '<html>hi</html>'],
+            'getMarkdown' => [fn (Client $c, array $o) => $c->getMarkdown('https://example.com', $o), '# hi'],
+            'listElements' => [
+                fn (Client $c, array $o) => $c->listElements('https://example.com', $o),
+                json_encode(['url' => 'https://example.com', 'count' => 0, 'elements' => []]),
+            ],
+            'getParsed' => [
+                fn (Client $c, array $o) => $c->getParsed('https://example.com', $o),
+                json_encode(['data' => ['page_type' => 'product', 'source' => 'schema.org', 'data' => []]]),
+            ],
+            'getPageWithCookies' => [
+                fn (Client $c, array $o) => $c->getPageWithCookies('https://example.com', $o),
+                json_encode(['html' => '<html>hi</html>', 'cookies' => [], 'proxy' => 'us']),
+            ],
+            'getPageWithHeaders' => [
+                fn (Client $c, array $o) => $c->getPageWithHeaders('https://example.com', $o),
+                json_encode($this->headersPage()),
+            ],
+            'getPageWithXhr' => [
+                fn (Client $c, array $o) => $c->getPageWithXhr('https://example.com', '/api', $o),
+                json_encode(['html' => '<html>hi</html>', 'xhr' => [], 'proxy' => 'us']),
+            ],
+        ];
+    }
+
+    public function testSessionIsSentOnlyWhenGiven(): void
+    {
+        foreach ($this->sessionCalls() as $name => [$call, $body]) {
+            $client = $this->client([['status' => 200, 'body' => $body], ['status' => 200, 'body' => $body]]);
+            $call($client, ['session' => 'cart-42.a_b']);
+            $call($client, []);
+
+            $this->assertSame('cart-42.a_b', $this->query($this->urls[0])['session'] ?? null, "{$name} sends session");
+            $this->assertArrayNotHasKey('session', $this->query($this->urls[1]), "{$name} omits session when not given");
+        }
+    }
+
+    public function testSessionCombinesWithOtherOptions(): void
+    {
+        $client = $this->client([['status' => 200, 'body' => '<html>hi</html>']]);
+        $client->getPageSource('https://example.com', [
+            'session' => 's1',
+            'proxy_country' => 'DE',
+            'steps' => [['action' => 'wait', 'value' => 500]],
+        ]);
+        $query = $this->query($this->urls[0]);
+
+        $this->assertSame('s1', $query['session']);
+        $this->assertSame('DE', $query['proxy_country']);
+        $this->assertArrayHasKey('steps', $query);
+    }
+
+    public function testSessionChangedComesFromTheHeader(): void
+    {
+        $calls = array_intersect_key(
+            $this->sessionCalls(),
+            array_flip(['getParsed', 'getPageWithCookies', 'getPageWithHeaders', 'getPageWithXhr']),
+        );
+        foreach ($calls as $name => [$call, $body]) {
+            $client = $this->client([
+                ['status' => 200, 'body' => $body, 'headers' => ['X-Session-Changed' => 'true']],
+                ['status' => 200, 'body' => $body],
+                ['status' => 200, 'body' => $body, 'headers' => ['x-session-changed' => ['false']]],
+            ]);
+            $changed = $call($client, ['session' => 's1']);
+            $kept = $call($client, ['session' => 's1']);
+            $other = $call($client, ['session' => 's1']);
+
+            $this->assertTrue($changed->sessionChanged, "{$name} reads X-Session-Changed: true");
+            $this->assertFalse($kept->sessionChanged, "{$name} is false without the header");
+            $this->assertFalse($other->sessionChanged, "{$name} is false for any value but true");
+        }
+    }
+
+    public function testSessionChangedDefaultsToFalseOnResultObjects(): void
+    {
+        $this->assertFalse(PageResult::fromArray(['html' => 'x'])->sessionChanged);
+        $this->assertFalse(ParsedPage::fromArray(['data' => []])->sessionChanged);
+        $this->assertFalse(PageWithHeaders::fromArray(['html' => 'x'])->sessionChanged);
+        $this->assertFalse(CapturedPage::fromArray(['html' => 'x'])->sessionChanged);
     }
 }

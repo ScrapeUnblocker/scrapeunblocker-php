@@ -26,10 +26,17 @@ final class ParsedPage
         public readonly ?string $html = null,
         /** The API's explanation, sent only when $dataExtracted is false. */
         public readonly ?string $detail = null,
+        /**
+         * True when the call named a sticky 'session' and the API answered it
+         * through another IP than the session's (the X-Session-Changed
+         * header); the session has then moved to the new IP, unless the call
+         * ran in parallel over the session's limit.
+         */
+        public readonly bool $sessionChanged = false,
     ) {
     }
 
-    public static function fromArray(array $payload): self
+    public static function fromArray(array $payload, bool $sessionChanged = false): self
     {
         $inner = $payload['data'] ?? $payload;
         if (!is_array($inner)) {
@@ -44,6 +51,7 @@ final class ParsedPage
             ($payload['data_extracted'] ?? true) !== false,
             is_string($payload['html'] ?? null) ? $payload['html'] : null,
             is_string($payload['detail'] ?? null) ? $payload['detail'] : null,
+            $sessionChanged,
         );
     }
 }
